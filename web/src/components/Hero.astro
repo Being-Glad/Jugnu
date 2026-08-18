@@ -48,12 +48,12 @@
         </div>
       </div>
 
-      <!-- Right Column: Larger Image Showcase with Perfectly Aligned Layers & Real-time Dissolve Reveal -->
+      <!-- Right Column: Exactly Two 100% Identically Dimensioned & Positioned Screens -->
       <div class="hero-showcase">
         <div class="snap-wrapper" id="snap-wrapper">
           
           <div class="phone-frame">
-            <!-- Layer B: Redesigned Jugnu Home Screen (Underneath - Always Perfectly Aligned) -->
+            <!-- Layer B: Redesigned Jugnu Home Screen (Underneath) -->
             <div class="jugnu-screen-layer" id="jugnu-layer">
               <img src="/screenshots/home.jpg" alt="Jugnu Redesigned Home Screen" />
             </div>
@@ -65,7 +65,7 @@
             </div>
           </div>
 
-          <!-- Capsule Badge Positioned UNDER the Phone Image -->
+          <!-- Subtle Capsule Badge Underneath Phone Frame -->
           <div class="capsule-sub-badge" id="capsule-badge">
             <span class="badge-content tag-metrolist" id="badge-content">● Metrolist (Original)</span>
           </div>
@@ -100,12 +100,10 @@
     canvas.width = width;
     canvas.height = height;
 
-    // Draw full metrolist image onto canvas initially
     ctx.drawImage(metrolistImg, 0, 0, width, height);
     const imgData = ctx.getImageData(0, 0, width, height);
     const data = imgData.data;
 
-    // Hide img element so canvas controls the entire dissolve + reveal process
     metrolistImg.style.opacity = '0';
 
     if (badgeContent) {
@@ -113,19 +111,17 @@
       badgeContent.className = 'badge-content tag-jugnu';
     }
 
-    // Build grid of particles
-    const step = 4; // Fine pixel grain for crisp dissolution
+    const step = 4;
     const particles: Array<{
-      ox: number; // original pixel x
-      oy: number; // original pixel y
-      x: number;  // current animated particle x
-      y: number;  // current animated particle y
+      ox: number;
+      oy: number;
+      x: number;
+      y: number;
       color: string;
       vx: number;
       vy: number;
       size: number;
       delay: number;
-      launched: boolean;
     }> = [];
 
     for (let y = 0; y < height; y += step) {
@@ -136,8 +132,6 @@
           const r = data[index];
           const g = data[index + 1];
           const b = data[index + 2];
-
-          // Disintegration wave moves from bottom-right up to top-left
           const delay = ((height - y) / height) * 350 + ((width - x) / width) * 200 + Math.random() * 120;
 
           particles.push({
@@ -146,11 +140,10 @@
             x: x,
             y: y,
             color: `rgba(${r}, ${g}, ${b}, 1)`,
-            vx: 1.2 + Math.random() * 3, // Fly rightward
-            vy: -2.0 - Math.random() * 3.5, // Fly upward into dust
+            vx: 1.5 + Math.random() * 3.2,
+            vy: -2.0 - Math.random() * 3.5,
             size: step,
-            delay: delay,
-            launched: false
+            delay: delay
           });
         }
       }
@@ -168,19 +161,15 @@
         const p = particles[i];
 
         if (elapsed < p.delay) {
-          // Pixel hasn't snapped yet -> Draw it on canvas
           ctx.fillStyle = p.color;
           ctx.fillRect(p.ox, p.oy, p.size, p.size);
           activeCount++;
         } else {
-          // Pixel IS SNAPPING right now!
-          // We DO NOT draw on (ox, oy), so the holes immediately reveal Jugnu underneath!
           const pElapsed = elapsed - p.delay;
-          if (pElapsed < 800) {
-            // Update flying particle position as dust flies upward
-            p.x += p.vx + Math.sin(pElapsed / 30) * 0.5;
+          if (pElapsed < 850) {
+            p.x += p.vx + Math.sin(pElapsed / 35) * 0.5;
             p.y += p.vy;
-            const alpha = Math.max(0, 1 - pElapsed / 800);
+            const alpha = Math.max(0, 1 - pElapsed / 850);
 
             ctx.fillStyle = p.color;
             ctx.globalAlpha = alpha;
@@ -354,11 +343,11 @@
   cursor: pointer;
 }
 
-/* Increased Hero Image Size & Perfect Alignment Frame */
+/* Identically Dimensioned Phone Frame (290px x 566px for 524x1024 Aspect Ratio) */
 .phone-frame {
   position: relative;
-  width: 300px;
-  height: 640px;
+  width: 290px;
+  height: 566px;
   border-radius: 16px;
 }
 
@@ -366,8 +355,8 @@
 .jugnu-screen-layer, .metrolist-screen-layer {
   position: absolute;
   inset: 0;
-  width: 300px;
-  height: 640px;
+  width: 290px;
+  height: 566px;
   border-radius: 16px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -380,8 +369,7 @@
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: cover;
-  object-position: top center;
+  object-fit: contain;
   border-radius: 16px;
 }
 
@@ -391,7 +379,7 @@
 
 .jugnu-screen-layer {
   z-index: 5;
-  opacity: 1; /* Always 100% visible underneath for immediate real-time pixel reveal! */
+  opacity: 1;
 }
 
 canvas#thanos-canvas {
