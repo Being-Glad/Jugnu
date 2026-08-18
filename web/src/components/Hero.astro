@@ -8,22 +8,22 @@
       <div class="hero-content">
         <div class="hero-badge">
           <span class="badge-dot">●</span>
-          <span>STREAM. DOWNLOAD. SYNC.</span>
+          <span>REDESIGNED & ENHANCED</span>
         </div>
 
         <h1 class="hero-title">
-          Your music. <br/>
-          <span class="gradient-text">Your vibe.</span>
+          Metrolist, evolved into <br/>
+          <span class="gradient-text">Jugnu.</span>
         </h1>
 
         <p class="hero-subtitle">
-          Jugnu brings you ad-free streaming from YouTube Music with high-quality audio, ultra-swift playback, synced live lyrics, AI translation, 10-band EQ tuning, and Listen Together rooms. No paywalls. No ads. Just pure music.
+          We took the open-source Metrolist foundation and transformed it into a lightning-fast, visually stunning YouTube Music experience — with low-latency playback, live synced lyrics, AI translation, and built-in AI music recommendation.
         </p>
 
         <div class="hero-actions">
           <a href="https://github.com/Being-Glad/Jugnu/releases/latest/download/Jugnu.apk" class="btn btn-primary btn-lg">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            <span>Download Release APK</span>
+            <span>Download Jugnu APK</span>
           </a>
 
           <a href="https://github.com/Being-Glad/Jugnu" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
@@ -43,28 +43,37 @@
           </div>
           <div class="hero-meta-item">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Android 7.0+</span>
+            <span>Low Latency</span>
           </div>
         </div>
       </div>
 
-      <!-- Right Column: Interactive Dual Stacked Screens with Smooth Position Swap -->
+      <!-- Right Column: Before (Metrolist) -> After (Jugnu Redesign) Transition -->
       <div class="hero-showcase">
-        <div class="stacked-screens-wrapper" id="swap-container" title="Click or hover to swap screens">
+        <div class="stacked-screens-wrapper" id="morph-container" title="Click to cycle before & after UI">
           <div class="stacked-screens" id="stacked-screens">
-            <!-- Screen A: Home Screen -->
-            <div class="screen-card card-a">
-              <img src="/screenshots/home.jpg" alt="Jugnu Home Screen" />
+            <!-- Screen 1: Original Metrolist (Before) -->
+            <div class="screen-card card-old" id="card-old">
+              <div class="screen-tag tag-before">Metrolist (Original)</div>
+              <img src="/screenshots/metrolist_old.jpg" alt="Original Metrolist Interface" />
             </div>
 
-            <!-- Screen B: Player Screen -->
-            <div class="screen-card card-b">
+            <!-- Screen 2: Jugnu Home Redesign (After) -->
+            <div class="screen-card card-jugnu-home" id="card-jugnu-home">
+              <div class="screen-tag tag-after">Jugnu (Redesigned)</div>
+              <img src="/screenshots/home.jpg" alt="Jugnu Redesigned Home Screen" />
+            </div>
+
+            <!-- Screen 3: Jugnu Player Redesign -->
+            <div class="screen-card card-jugnu-player" id="card-jugnu-player">
+              <div class="screen-tag tag-after">Jugnu (Now Playing)</div>
               <img src="/screenshots/player.jpg" alt="Jugnu Player Screen" />
             </div>
           </div>
-          <div class="swap-hint">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16"/></svg>
-            <span>Tap to swap screens</span>
+
+          <div class="morph-status" id="morph-status">
+            <span class="status-indicator" id="status-indicator">● Metrolist Original</span>
+            <span class="swap-action-hint">Tap to transform ⚡</span>
           </div>
         </div>
       </div>
@@ -73,31 +82,52 @@
 </section>
 
 <script>
-  const container = document.getElementById('swap-container');
-  const stacked = document.getElementById('stacked-screens');
+  const container = document.getElementById('morph-container');
+  const cardOld = document.getElementById('card-old');
+  const cardHome = document.getElementById('card-jugnu-home');
+  const cardPlayer = document.getElementById('card-jugnu-player');
+  const statusIndicator = document.getElementById('status-indicator');
 
-  if (container && stacked) {
-    let swapped = false;
+  if (container && cardOld && cardHome && cardPlayer && statusIndicator) {
+    let state = 0; // 0: Metrolist Old, 1: Jugnu Home, 2: Jugnu Player
 
-    const toggleSwap = () => {
-      swapped = !swapped;
-      if (swapped) {
-        stacked.classList.add('swapped');
-      } else {
-        stacked.classList.remove('swapped');
+    const updateCards = () => {
+      if (state === 0) {
+        // Metrolist Old front
+        cardOld.className = 'screen-card card-front';
+        cardHome.className = 'screen-card card-middle';
+        cardPlayer.className = 'screen-card card-back';
+        statusIndicator.innerHTML = '● <strong style="color: #94a3b8">Metrolist (Original)</strong>';
+      } else if (state === 1) {
+        // Jugnu Home front (Metrolist slides away)
+        cardOld.className = 'screen-card card-disappear';
+        cardHome.className = 'screen-card card-front';
+        cardPlayer.className = 'screen-card card-middle';
+        statusIndicator.innerHTML = '✨ <strong style="color: var(--accent-cyan)">Jugnu Redesigned Home</strong>';
+      } else if (state === 2) {
+        // Jugnu Player front
+        cardOld.className = 'screen-card card-back';
+        cardHome.className = 'screen-card card-middle';
+        cardPlayer.className = 'screen-card card-front';
+        statusIndicator.innerHTML = '🎵 <strong style="color: var(--accent-teal)">Jugnu Synced Player</strong>';
       }
     };
 
-    container.addEventListener('click', toggleSwap);
+    updateCards();
 
-    let autoSwapTimer = setInterval(toggleSwap, 4500);
+    const nextState = () => {
+      state = (state + 1) % 3;
+      updateCards();
+    };
 
-    container.addEventListener('mouseenter', () => {
-      clearInterval(autoSwapTimer);
-    });
+    container.addEventListener('click', nextState);
 
+    // Auto transformation cycle: shows Metrolist old briefly, then morphs into Jugnu!
+    let timer = setInterval(nextState, 3800);
+
+    container.addEventListener('mouseenter', () => clearInterval(timer));
     container.addEventListener('mouseleave', () => {
-      autoSwapTimer = setInterval(toggleSwap, 4500);
+      timer = setInterval(nextState, 3800);
     });
   }
 </script>
@@ -202,16 +232,18 @@
   height: 570px;
 }
 
+/* Card Styling */
 .screen-card {
   position: absolute;
   top: 0;
+  left: 0;
   width: 260px;
   border-radius: 14px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   background: #080c14;
-  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.85), 0 0 30px rgba(6, 182, 212, 0.2);
-  transition: transform 0.65s cubic-bezier(0.34, 1.4, 0.64, 1), z-index 0.65s, opacity 0.5s ease, filter 0.5s ease, box-shadow 0.5s ease;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.85);
+  transition: transform 0.7s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.7s ease, filter 0.7s ease;
 }
 
 .screen-card img {
@@ -221,51 +253,84 @@
   object-fit: contain;
 }
 
-.card-a {
-  left: 0;
+/* Screen Tags */
+.screen-tag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
   z-index: 10;
-  transform: rotate(-3deg) scale(1);
-  opacity: 1;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(8px);
 }
 
-.card-b {
-  left: 35px;
-  z-index: 5;
-  transform: rotate(5deg) scale(0.94);
-  opacity: 0.75;
-  filter: brightness(0.85);
+.tag-before {
+  background: rgba(15, 23, 42, 0.85);
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-.stacked-screens.swapped .card-a {
-  left: 35px;
-  z-index: 5;
-  transform: rotate(5deg) scale(0.94);
-  opacity: 0.75;
-  filter: brightness(0.85);
+.tag-after {
+  background: rgba(6, 182, 212, 0.9);
+  color: #041019;
+  box-shadow: 0 4px 15px rgba(6, 182, 212, 0.4);
 }
 
-.stacked-screens.swapped .card-b {
-  left: 0;
+/* Card Stack States */
+.card-front {
   z-index: 10;
   transform: rotate(-3deg) scale(1);
   opacity: 1;
   filter: brightness(1);
-  box-shadow: 0 25px 55px -8px rgba(0, 0, 0, 0.9), 0 0 40px rgba(6, 182, 212, 0.35);
+  box-shadow: 0 25px 55px -8px rgba(0, 0, 0, 0.9), 0 0 35px rgba(6, 182, 212, 0.3);
 }
 
-.swap-hint {
+.card-middle {
+  z-index: 5;
+  transform: rotate(5deg) translateX(30px) scale(0.94);
+  opacity: 0.8;
+  filter: brightness(0.85);
+}
+
+.card-back {
+  z-index: 2;
+  transform: rotate(-7deg) translateX(-20px) scale(0.88);
+  opacity: 0.5;
+  filter: brightness(0.7);
+}
+
+/* Disappear / Morph Animation for Metrolist Old */
+.card-disappear {
+  z-index: 15;
+  transform: translateY(-80px) rotate(-15deg) scale(0.75);
+  opacity: 0;
+  filter: blur(8px);
+  pointer-events: none;
+}
+
+.morph-status {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  font-weight: 500;
-  transition: color 0.2s ease;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.2rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-full);
+  background: rgba(16, 24, 39, 0.7);
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(10px);
+  font-size: 0.85rem;
 }
 
-.stacked-screens-wrapper:hover .swap-hint {
+.swap-action-hint {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.stacked-screens-wrapper:hover .swap-action-hint {
   color: var(--accent-cyan);
 }
 
