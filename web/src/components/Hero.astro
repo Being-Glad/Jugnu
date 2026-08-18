@@ -48,26 +48,28 @@
         </div>
       </div>
 
-      <!-- Right Column: Larger Image Showcase with Perfectly Aligned Layers & Real-time Dissolve Reveal -->
+      <!-- Right Column: Larger Phone Frame with Chief-of-Design Typography Overlay (No Capsules) -->
       <div class="hero-showcase">
         <div class="snap-wrapper" id="snap-wrapper">
           
           <div class="phone-frame">
-            <!-- Layer B: Redesigned Jugnu Home Screen (Underneath - Always Perfectly Aligned) -->
+            <!-- Layer B: Redesigned Jugnu Home Screen (Underneath) -->
             <div class="jugnu-screen-layer" id="jugnu-layer">
               <img src="/screenshots/home.jpg" alt="Jugnu Redesigned Home Screen" />
+              
+              <!-- Chief of Design Glass Typography Overlay Inside Phone Frame -->
+              <div class="design-overlay" id="design-overlay">
+                <span class="design-kicker">REIMAGINED FOR YOU</span>
+                <h3 class="design-heading">Faster. Sweeter. Synced.</h3>
+              </div>
             </div>
 
             <!-- Layer A: Metrolist Original Home Screen (Top Overlay) -->
             <div class="metrolist-screen-layer" id="metrolist-layer">
+              <span class="legacy-badge">METROLIST — LEGACY</span>
               <img id="metrolist-img" src="/screenshots/metrolist_old.jpg" alt="Original Metrolist Home Screen" />
               <canvas id="thanos-canvas"></canvas>
             </div>
-          </div>
-
-          <!-- Capsule Badge Positioned UNDER the Phone Image -->
-          <div class="capsule-sub-badge" id="capsule-badge">
-            <span class="badge-content tag-metrolist" id="badge-content">● Metrolist (Original)</span>
           </div>
 
         </div>
@@ -81,7 +83,7 @@
   const metrolistLayer = document.getElementById('metrolist-layer');
   const metrolistImg = document.getElementById('metrolist-img') as HTMLImageElement;
   const canvas = document.getElementById('thanos-canvas') as HTMLCanvasElement;
-  const badgeContent = document.getElementById('badge-content');
+  const designOverlay = document.getElementById('design-overlay');
 
   let isSnapped = false;
   let isAnimating = false;
@@ -100,32 +102,27 @@
     canvas.width = width;
     canvas.height = height;
 
-    // Draw full metrolist image onto canvas initially
     ctx.drawImage(metrolistImg, 0, 0, width, height);
     const imgData = ctx.getImageData(0, 0, width, height);
     const data = imgData.data;
 
-    // Hide img element so canvas controls the entire dissolve + reveal process
     metrolistImg.style.opacity = '0';
 
-    if (badgeContent) {
-      badgeContent.textContent = '✨ Jugnu (Redesigned)';
-      badgeContent.className = 'badge-content tag-jugnu';
+    if (designOverlay) {
+      designOverlay.classList.add('visible');
     }
 
-    // Build grid of particles
-    const step = 4; // Fine pixel grain for crisp dissolution
+    const step = 4;
     const particles: Array<{
-      ox: number; // original pixel x
-      oy: number; // original pixel y
-      x: number;  // current animated particle x
-      y: number;  // current animated particle y
+      ox: number;
+      oy: number;
+      x: number;
+      y: number;
       color: string;
       vx: number;
       vy: number;
       size: number;
       delay: number;
-      launched: boolean;
     }> = [];
 
     for (let y = 0; y < height; y += step) {
@@ -136,8 +133,6 @@
           const r = data[index];
           const g = data[index + 1];
           const b = data[index + 2];
-
-          // Disintegration wave moves from bottom-right up to top-left
           const delay = ((height - y) / height) * 350 + ((width - x) / width) * 200 + Math.random() * 120;
 
           particles.push({
@@ -146,11 +141,10 @@
             x: x,
             y: y,
             color: `rgba(${r}, ${g}, ${b}, 1)`,
-            vx: 1.2 + Math.random() * 3, // Fly rightward
-            vy: -2.0 - Math.random() * 3.5, // Fly upward into dust
+            vx: 1.5 + Math.random() * 3.2,
+            vy: -2.0 - Math.random() * 3.5,
             size: step,
-            delay: delay,
-            launched: false
+            delay: delay
           });
         }
       }
@@ -168,19 +162,15 @@
         const p = particles[i];
 
         if (elapsed < p.delay) {
-          // Pixel hasn't snapped yet -> Draw it on canvas
           ctx.fillStyle = p.color;
           ctx.fillRect(p.ox, p.oy, p.size, p.size);
           activeCount++;
         } else {
-          // Pixel IS SNAPPING right now!
-          // We DO NOT draw on (ox, oy), so the holes immediately reveal Jugnu underneath!
           const pElapsed = elapsed - p.delay;
-          if (pElapsed < 800) {
-            // Update flying particle position as dust flies upward
-            p.x += p.vx + Math.sin(pElapsed / 30) * 0.5;
+          if (pElapsed < 850) {
+            p.x += p.vx + Math.sin(pElapsed / 35) * 0.5;
             p.y += p.vy;
-            const alpha = Math.max(0, 1 - pElapsed / 800);
+            const alpha = Math.max(0, 1 - pElapsed / 850);
 
             ctx.fillStyle = p.color;
             ctx.globalAlpha = alpha;
@@ -217,9 +207,8 @@
     metrolistImg.style.opacity = '1';
     isSnapped = false;
 
-    if (badgeContent) {
-      badgeContent.textContent = '● Metrolist (Original)';
-      badgeContent.className = 'badge-content tag-metrolist';
+    if (designOverlay) {
+      designOverlay.classList.remove('visible');
     }
   }
 
@@ -239,7 +228,7 @@
       } else {
         resetSnap();
       }
-    }, 4500);
+    }, 4800);
   }
 
   function stopAutoLoop() {
@@ -354,7 +343,7 @@
   cursor: pointer;
 }
 
-/* Increased Hero Image Size & Perfect Alignment Frame */
+/* Larger Phone Frame */
 .phone-frame {
   position: relative;
   width: 300px;
@@ -362,7 +351,7 @@
   border-radius: 16px;
 }
 
-/* Both Screen Layers are 100% Identically Sized & Positioned */
+/* Screen Layers (100% Identical Dimensions & Alignment) */
 .jugnu-screen-layer, .metrolist-screen-layer {
   position: absolute;
   inset: 0;
@@ -391,7 +380,7 @@
 
 .jugnu-screen-layer {
   z-index: 5;
-  opacity: 1; /* Always 100% visible underneath for immediate real-time pixel reveal! */
+  opacity: 1;
 }
 
 canvas#thanos-canvas {
@@ -403,33 +392,66 @@ canvas#thanos-canvas {
   z-index: 15;
 }
 
-/* Capsule Badge Positioned UNDER the Phone Image */
-.capsule-sub-badge {
-  margin-top: 1.2rem;
-  display: flex;
-  justify-content: center;
-}
-
-.badge-content {
-  display: inline-block;
-  padding: 0.45rem 1.2rem;
+/* Minimal Legacy Badge inside Metrolist Screen */
+.legacy-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 12;
+  padding: 0.35rem 0.8rem;
   border-radius: var(--radius-full);
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  transition: all 0.4s ease;
-}
-
-.tag-metrolist {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 1px;
   background: rgba(15, 23, 42, 0.85);
   color: #94a3b8;
   border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
 }
 
-.tag-jugnu {
-  background: var(--gradient-brand);
-  color: #041019;
-  box-shadow: 0 4px 20px rgba(6, 182, 212, 0.4);
+/* Chief of Design Level Glass Typography Overlay INSIDE Phone Frame */
+.design-overlay {
+  position: absolute;
+  bottom: 24px;
+  left: 16px;
+  right: 16px;
+  z-index: 20;
+  padding: 1rem 1.2rem;
+  border-radius: 14px;
+  background: rgba(8, 14, 24, 0.82);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7), 0 0 25px rgba(6, 182, 212, 0.25);
+  transform: translateY(20px);
+  opacity: 0;
+  transition: transform 0.6s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.6s ease;
+}
+
+.design-overlay.visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.design-kicker {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--accent-cyan);
+  margin-bottom: 0.2rem;
+  text-transform: uppercase;
+}
+
+.design-heading {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+  margin: 0;
+  background: linear-gradient(135deg, #ffffff 0%, #a5f3fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 @media (max-width: 992px) {
