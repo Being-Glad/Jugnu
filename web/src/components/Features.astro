@@ -1,9 +1,19 @@
 ---
 const features = [
   {
+    icon: 'speed',
+    title: 'Low Latency & Swift Playback',
+    desc: 'Optimized InnerTube stream handling for lightning-fast song startup, zero buffering delay, and ultra-swift track switching.'
+  },
+  {
+    icon: 'ai',
+    title: 'Open-Source AI Recommendation Engine',
+    desc: 'Integrated smart recommendation engine for personalized song discovery and dynamic queue generation based on your listening habits.'
+  },
+  {
     icon: 'lyrics',
     title: 'Live Synced Lyrics & AI Translation',
-    desc: 'Sing along with Apple-style synchronized lyrics. Translate foreign lyrics instantly using real-time AI intelligence and Romanization (Furigana, Pinyin, Hangul).'
+    desc: 'Sing along with Apple-style synchronized lyrics. Translate foreign lyrics in real-time with pronunciation transliteration (Hindi, Furigana, Pinyin, Hangul).'
   },
   {
     icon: 'equalizer',
@@ -11,24 +21,14 @@ const features = [
     desc: 'Fine-tune your sound with a 10-band parametric EQ, headphone calibration profiles (4,000+ presets), loudness normalization, and crossfade.'
   },
   {
-    icon: 'playback',
-    title: 'High-Quality Audio & Offline Cache',
-    desc: 'Stream music from YouTube Music at maximum quality, cache tracks for offline listening, skip silences automatically, and set sleep timers.'
-  },
-  {
     icon: 'theme',
-    title: 'Material 3 Themes & Pure Black',
-    desc: 'Tailor your player with Light, Dark, Pure OLED Pitch Black, dynamic wallpaper accent colors, and 19 preset color schemes.'
+    title: 'Material 3 Themes & Pure OLED Black',
+    desc: 'Tailor your app with Light, Dark, Pure Pitch Black, wallpaper accent colors, and 19 custom color schemes.'
   },
   {
     icon: 'social',
     title: 'Listen Together Rooms',
-    desc: 'Host virtual rooms with friends. Synchronize playback, track skipping, and queue management live in real time.'
-  },
-  {
-    icon: 'account',
-    title: 'YouTube Music Library Sync',
-    desc: 'Sign in to sync your playlists, liked songs, history, recommendations, and search across YouTube Music seamlessly.'
+    desc: 'Host virtual rooms with friends. Synchronize playback, track switching, and queue changes live in real time.'
   }
 ];
 ---
@@ -37,9 +37,9 @@ const features = [
   <div class="container">
     <div class="section-header">
       <span class="section-tag">Key Features</span>
-      <h2 class="section-title">Built For Audio Enthusiasts</h2>
+      <h2 class="section-title">Built For Performance & Discovery</h2>
       <p class="section-description">
-        Loaded with powerful customization, synchronized lyrics, lossless tuning, and seamless account synchronization.
+        Enhanced with ultra-fast song playback, built-in AI music recommendation, synchronized lyrics, and parametric EQ tuning.
       </p>
     </div>
 
@@ -89,12 +89,12 @@ const features = [
   width: 50px;
   height: 50px;
   border-radius: var(--radius-md);
-  background: rgba(139, 92, 246, 0.12);
-  border: 1px solid rgba(139, 92, 246, 0.25);
+  background: rgba(6, 182, 212, 0.12);
+  border: 1px solid rgba(6, 182, 212, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #c084fc;
+  color: var(--accent-cyan);
   margin-bottom: 1.2rem;
 }
 
