@@ -3,281 +3,82 @@
 
 <section class="hero">
   <div class="container">
-    <div class="hero-grid">
-      <!-- Left Content Column -->
-      <div class="hero-content">
-        <div class="hero-badge">
-          <span class="badge-dot">●</span>
-          <span>EVOLVED & REDESIGNED</span>
-        </div>
-
-        <h1 class="hero-title">
-          Metrolist, evolved into <br/>
-          <span class="gradient-text">Jugnu.</span>
-        </h1>
-
-        <p class="hero-subtitle">
-          We took the open-source Metrolist foundation and transformed it into a lightning-fast, visually stunning YouTube Music client — with low-latency playback, live synced lyrics, AI translation, and built-in AI music recommendation.
-        </p>
-
-        <div class="hero-actions">
-          <a href="https://github.com/Being-Glad/Jugnu/releases/latest/download/Jugnu.apk" class="btn btn-primary btn-lg">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            <span>Download Jugnu APK</span>
-          </a>
-
-          <a href="https://github.com/Being-Glad/Jugnu" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-            <span>GitHub</span>
-          </a>
-        </div>
-
-        <div class="hero-meta">
-          <div class="hero-meta-item">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Free & Open Source</span>
-          </div>
-          <div class="hero-meta-item">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>No Ads</span>
-          </div>
-          <div class="hero-meta-item">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Low Latency</span>
-          </div>
-        </div>
+    <div class="hero-wrapper">
+      <div class="hero-badge">
+        <span class="badge-dot">●</span>
+        <span>EVOLVED & REDESIGNED</span>
       </div>
 
-      <!-- Right Column: Borderless Phone Frame with Identical Specs for Both Screens -->
-      <div class="hero-showcase">
-        <div class="snap-wrapper" id="snap-wrapper">
-          
-          <div class="phone-frame">
-            <!-- Layer B: Redesigned Jugnu Home Screen (Underneath - 524x1024) -->
-            <div class="jugnu-screen-layer" id="jugnu-layer">
-              <img src="/screenshots/home.jpg" alt="Jugnu Redesigned Home Screen" />
-            </div>
+      <h1 class="hero-title">
+        Metrolist, evolved into <br/>
+        <span class="gradient-text">Jugnu.</span>
+      </h1>
 
-            <!-- Layer A: Metrolist Original Home Screen (Top Overlay - 524x1024) -->
-            <div class="metrolist-screen-layer" id="metrolist-layer">
-              <img id="metrolist-img" src="/screenshots/metrolist_old.jpg" alt="Original Metrolist Home Screen" />
-              <canvas id="thanos-canvas"></canvas>
-            </div>
-          </div>
+      <p class="hero-subtitle">
+        We took the open-source Metrolist foundation and transformed it into a lightning-fast, visually stunning YouTube Music client — with low-latency playback, live synced lyrics, AI translation, and built-in AI music recommendation.
+      </p>
 
-          <!-- Capsule Badge Underneath Phone Frame -->
-          <div class="capsule-sub-badge" id="capsule-badge">
-            <span class="badge-content tag-metrolist" id="badge-content">● Metrolist (Original)</span>
-          </div>
+      <div class="hero-actions">
+        <a href="https://github.com/Being-Glad/Jugnu/releases/latest/download/Jugnu.apk" class="btn btn-primary btn-lg">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Download Jugnu APK</span>
+        </a>
 
+        <a href="https://github.com/Being-Glad/Jugnu" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+
+      <div class="hero-meta">
+        <div class="hero-meta-item">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Free & Open Source</span>
+        </div>
+        <div class="hero-meta-item">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>No Ads</span>
+        </div>
+        <div class="hero-meta-item">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Low Latency</span>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<script>
-  const wrapper = document.getElementById('snap-wrapper');
-  const metrolistLayer = document.getElementById('metrolist-layer');
-  const metrolistImg = document.getElementById('metrolist-img') as HTMLImageElement;
-  const canvas = document.getElementById('thanos-canvas') as HTMLCanvasElement;
-  const badgeContent = document.getElementById('badge-content');
-
-  let isSnapped = false;
-  let isAnimating = false;
-  let autoLoopTimer: any = null;
-
-  function doThanosSnap() {
-    if (isAnimating || isSnapped) return;
-    isAnimating = true;
-
-    if (!canvas || !metrolistImg || !metrolistLayer) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const width = metrolistLayer.clientWidth;
-    const height = metrolistLayer.clientHeight;
-    canvas.width = width;
-    canvas.height = height;
-
-    ctx.drawImage(metrolistImg, 0, 0, width, height);
-    const imgData = ctx.getImageData(0, 0, width, height);
-    const data = imgData.data;
-
-    metrolistImg.style.opacity = '0';
-
-    if (badgeContent) {
-      badgeContent.textContent = '✨ Jugnu (Redesigned)';
-      badgeContent.className = 'badge-content tag-jugnu';
-    }
-
-    const step = 4;
-    const particles: Array<{
-      ox: number;
-      oy: number;
-      x: number;
-      y: number;
-      color: string;
-      vx: number;
-      vy: number;
-      size: number;
-      delay: number;
-    }> = [];
-
-    for (let y = 0; y < height; y += step) {
-      for (let x = 0; x < width; x += step) {
-        const index = (y * width + x) * 4;
-        const a = data[index + 3];
-        if (a > 30) {
-          const r = data[index];
-          const g = data[index + 1];
-          const b = data[index + 2];
-          const delay = ((height - y) / height) * 350 + ((width - x) / width) * 200 + Math.random() * 120;
-
-          particles.push({
-            ox: x,
-            oy: y,
-            x: x,
-            y: y,
-            color: `rgba(${r}, ${g}, ${b}, 1)`,
-            vx: 1.5 + Math.random() * 3.2,
-            vy: -2.0 - Math.random() * 3.5,
-            size: step,
-            delay: delay
-          });
-        }
-      }
-    }
-
-    const startTime = performance.now();
-
-    function animateParticles(now: number) {
-      const elapsed = now - startTime;
-      ctx.clearRect(0, 0, width, height);
-
-      let activeCount = 0;
-
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-
-        if (elapsed < p.delay) {
-          ctx.fillStyle = p.color;
-          ctx.fillRect(p.ox, p.oy, p.size, p.size);
-          activeCount++;
-        } else {
-          const pElapsed = elapsed - p.delay;
-          if (pElapsed < 850) {
-            p.x += p.vx + Math.sin(pElapsed / 35) * 0.5;
-            p.y += p.vy;
-            const alpha = Math.max(0, 1 - pElapsed / 850);
-
-            ctx.fillStyle = p.color;
-            ctx.globalAlpha = alpha;
-            ctx.fillRect(p.x, p.y, p.size, p.size);
-            ctx.globalAlpha = 1;
-            activeCount++;
-          }
-        }
-      }
-
-      if (activeCount > 0) {
-        requestAnimationFrame(animateParticles);
-      } else {
-        ctx.clearRect(0, 0, width, height);
-        metrolistLayer.style.pointerEvents = 'none';
-        metrolistLayer.style.opacity = '0';
-        isSnapped = true;
-        isAnimating = false;
-      }
-    }
-
-    requestAnimationFrame(animateParticles);
-  }
-
-  function resetSnap() {
-    if (isAnimating || !isSnapped) return;
-    if (!metrolistImg || !metrolistLayer || !canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    metrolistLayer.style.pointerEvents = 'auto';
-    metrolistLayer.style.opacity = '1';
-    metrolistImg.style.opacity = '1';
-    isSnapped = false;
-
-    if (badgeContent) {
-      badgeContent.textContent = '● Metrolist (Original)';
-      badgeContent.className = 'badge-content tag-metrolist';
-    }
-  }
-
-  wrapper?.addEventListener('click', () => {
-    if (isSnapped) {
-      resetSnap();
-    } else {
-      doThanosSnap();
-    }
-  });
-
-  function startAutoLoop() {
-    stopAutoLoop();
-    autoLoopTimer = setInterval(() => {
-      if (!isSnapped) {
-        doThanosSnap();
-      } else {
-        resetSnap();
-      }
-    }, 4500);
-  }
-
-  function stopAutoLoop() {
-    if (autoLoopTimer) {
-      clearInterval(autoLoopTimer);
-      autoLoopTimer = null;
-    }
-  }
-
-  wrapper?.addEventListener('mouseenter', stopAutoLoop);
-  wrapper?.addEventListener('mouseleave', startAutoLoop);
-
-  setTimeout(() => {
-    doThanosSnap();
-    startAutoLoop();
-  }, 1600);
-</script>
-
 <style>
 .hero {
   position: relative;
-  padding: 7.5rem 0 4.5rem;
+  padding: 8.5rem 0 5.5rem;
   overflow: hidden;
+  text-align: center;
 }
 
-.hero-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
+.hero-wrapper {
+  max-width: 820px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-}
-
-.hero-content {
   z-index: 2;
+  position: relative;
 }
 
 .hero-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.4rem 1.1rem;
+  padding: 0.45rem 1.2rem;
   border-radius: var(--radius-full);
   background: rgba(6, 182, 212, 0.08);
   border: 1px solid var(--border-highlight);
   color: var(--accent-cyan);
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 700;
   letter-spacing: 1.2px;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.8rem;
 }
 
 .badge-dot {
@@ -286,18 +87,18 @@
 }
 
 .hero-title {
-  font-size: 4rem;
-  letter-spacing: -2px;
+  font-size: 4.6rem;
+  letter-spacing: -2.5px;
   line-height: 1.05;
-  margin-bottom: 1.4rem;
+  margin-bottom: 1.6rem;
   font-weight: 800;
 }
 
 .hero-subtitle {
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   color: var(--text-secondary);
-  margin-bottom: 2.2rem;
-  max-width: 520px;
+  margin-bottom: 2.6rem;
+  max-width: 660px;
   font-weight: 400;
   line-height: 1.7;
 }
@@ -306,143 +107,47 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 1.2rem;
-  margin-bottom: 2.2rem;
+  margin-bottom: 2.8rem;
 }
 
 .hero-meta {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  justify-content: center;
+  gap: 2rem;
   color: var(--text-muted);
-  font-size: 0.88rem;
+  font-size: 0.95rem;
 }
 
 .hero-meta-item {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
 }
 
 .hero-meta-item svg {
   color: var(--accent-teal);
 }
 
-.hero-showcase {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.snap-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  cursor: pointer;
-}
-
-/* Borderless Phone Frame (300px x 586px for 524x1024 Aspect Ratio) */
-.phone-frame {
-  position: relative;
-  width: 300px;
-  height: 586px;
-  border-radius: 20px;
-}
-
-/* Both Screen Layers Have ZERO Borders and 100% Identical Specs */
-.jugnu-screen-layer, .metrolist-screen-layer {
-  position: absolute;
-  inset: 0;
-  width: 300px;
-  height: 586px;
-  border-radius: 20px;
-  overflow: hidden;
-  border: none;
-  background: transparent;
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.7);
-  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.jugnu-screen-layer img, .metrolist-screen-layer img {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
-  border-radius: 20px;
-}
-
-.metrolist-screen-layer {
-  z-index: 10;
-}
-
-.jugnu-screen-layer {
-  z-index: 5;
-  opacity: 1;
-}
-
-canvas#thanos-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 15;
-}
-
-/* Capsule Badge Positioned UNDER the Phone Image */
-.capsule-sub-badge {
-  margin-top: 1.2rem;
-  display: flex;
-  justify-content: center;
-}
-
-.badge-content {
-  display: inline-block;
-  padding: 0.45rem 1.2rem;
-  border-radius: var(--radius-full);
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  transition: all 0.4s ease;
-}
-
-.tag-metrolist {
-  background: rgba(15, 23, 42, 0.85);
-  color: #94a3b8;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.tag-jugnu {
-  background: var(--gradient-brand);
-  color: #041019;
-  box-shadow: 0 4px 20px rgba(6, 182, 212, 0.4);
-}
-
-@media (max-width: 992px) {
-  .hero-grid {
-    grid-template-columns: 1fr;
-    text-align: center;
-    gap: 2rem;
-  }
-
-  .hero-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+@media (max-width: 768px) {
+  .hero {
+    padding: 6rem 0 3.5rem;
   }
 
   .hero-title {
     font-size: 3.2rem;
+    letter-spacing: -1.5px;
   }
 
-  .hero-actions {
-    justify-content: center;
+  .hero-subtitle {
+    font-size: 1.05rem;
   }
 
-  .hero-showcase {
-    margin-top: 1rem;
+  .hero-meta {
+    flex-direction: column;
+    gap: 0.8rem;
   }
 }
 </style>
