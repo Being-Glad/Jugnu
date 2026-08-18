@@ -1,0 +1,319 @@
+---
+const screenshots = [
+  { id: 'home', title: 'Home Feed', path: '/screenshots/home.jpg', desc: 'Trending music, featured playlists & miniplayer bar' },
+  { id: 'player', title: 'Now Playing', path: '/screenshots/player.jpg', desc: 'Album artwork view with live synchronized lyrics preview' },
+  { id: 'lyrics', title: 'Synced Lyrics', path: '/screenshots/lyrics.jpg', desc: 'Full-screen synchronized lyrics with Hindi & Romanized pronunciation' },
+  { id: 'library', title: 'Library & Stats', path: '/screenshots/library.jpg', desc: 'Liked songs, offline downloads, cached tracks, My Top 50 & listening stats' },
+  { id: 'settings', title: 'Settings & EQ', path: '/screenshots/settings.jpg', desc: '10-band parametric equalizer, AI lyrics translation & customization' },
+  { id: 'search', title: 'Moods & Genres', path: '/screenshots/search.jpg', desc: 'Instant search & genre filters (Chill, Focus, Gaming, Workout, etc.)' }
+];
+---
+
+<section class="showcase-section" id="preview">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Interactive Preview</span>
+      <h2 class="section-title">Clean & Intuitive Interface</h2>
+      <p class="section-description">
+        Hover over any screen to zoom and inspect details, or tap to open in full screen.
+      </p>
+    </div>
+
+    <!-- Direct Hover-Zoom Screenshot Cards Grid (No Giant Center Image) -->
+    <div class="screenshot-grid">
+      {screenshots.map((s, index) => (
+        <div class="grid-card" data-index={index} data-src={s.path} data-title={s.title} data-desc={s.desc}>
+          <div class="grid-card-screen">
+            <img src={s.path} alt={s.title} loading="lazy" />
+            <div class="zoom-overlay">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              <span>Click for Fullscreen</span>
+            </div>
+          </div>
+          <div class="grid-card-info">
+            <h4 class="grid-card-title">{s.title}</h4>
+            <p class="grid-card-desc">{s.desc}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<!-- Fullscreen Lightbox Modal -->
+<div class="lightbox-modal" id="lightbox">
+  <button class="lightbox-close" id="lightbox-close" aria-label="Close Lightbox">✕</button>
+  <button class="lightbox-nav lightbox-prev" id="lightbox-prev" aria-label="Previous Image">‹</button>
+  
+  <div class="lightbox-content">
+    <img src="" id="lightbox-img" alt="Fullscreen Screenshot" />
+    <div class="lightbox-caption">
+      <h3 id="lightbox-title"></h3>
+      <p id="lightbox-desc"></p>
+    </div>
+  </div>
+
+  <button class="lightbox-nav lightbox-next" id="lightbox-next" aria-label="Next Image">›</button>
+</div>
+
+<script>
+  const screenshots = [
+    { title: 'Home Feed', path: '/screenshots/home.jpg', desc: 'Trending music, featured playlists & miniplayer bar' },
+    { title: 'Now Playing', path: '/screenshots/player.jpg', desc: 'Album artwork view with live synchronized lyrics preview' },
+    { title: 'Synced Lyrics', path: '/screenshots/lyrics.jpg', desc: 'Full-screen synchronized lyrics with Hindi & Romanized pronunciation' },
+    { title: 'Library & Stats', path: '/screenshots/library.jpg', desc: 'Liked songs, offline downloads, cached tracks, My Top 50 & listening stats' },
+    { title: 'Settings & EQ', path: '/screenshots/settings.jpg', desc: '10-band parametric equalizer, AI lyrics translation & customization' },
+    { title: 'Moods & Genres', path: '/screenshots/search.jpg', desc: 'Instant search & genre filters (Chill, Focus, Gaming, Workout, etc.)' }
+  ];
+
+  let currentIndex = 0;
+
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightbox-img') as HTMLImageElement;
+  const lightboxTitle = document.getElementById('lightbox-title');
+  const lightboxDesc = document.getElementById('lightbox-desc');
+  const closeBtn = document.getElementById('lightbox-close');
+  const prevBtn = document.getElementById('lightbox-prev');
+  const nextBtn = document.getElementById('lightbox-next');
+
+  function openLightbox(index: number) {
+    if (!lightbox || !lightboxImg || !lightboxTitle || !lightboxDesc) return;
+    currentIndex = index;
+    const s = screenshots[currentIndex];
+    lightboxImg.src = s.path;
+    lightboxTitle.textContent = s.title;
+    lightboxDesc.textContent = s.desc;
+    lightbox.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    if (!lightbox) return;
+    lightbox.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  function navigateLightbox(dir: number) {
+    currentIndex = (currentIndex + dir + screenshots.length) % screenshots.length;
+    openLightbox(currentIndex);
+  }
+
+  document.querySelectorAll('.grid-card').forEach((card, idx) => {
+    card.addEventListener('click', () => openLightbox(idx));
+  });
+
+  closeBtn?.addEventListener('click', closeLightbox);
+  prevBtn?.addEventListener('click', () => navigateLightbox(-1));
+  nextBtn?.addEventListener('click', () => navigateLightbox(1));
+
+  lightbox?.addEventListener('click', (e) => {
+    if (e.target === lightbox) closeLightbox();
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (!lightbox?.classList.contains('active')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') navigateLightbox(-1);
+    if (e.key === 'ArrowRight') navigateLightbox(1);
+  });
+</script>
+
+<style>
+.showcase-section {
+  padding: 5rem 0;
+  position: relative;
+}
+
+/* Grid of Screenshot Cards with Smooth Hover Zoom & Reduced 14px Curves */
+.screenshot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.grid-card {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 0.85rem;
+  cursor: pointer;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.3s ease, box-shadow 0.4s ease, background-color 0.3s ease;
+  overflow: visible;
+  z-index: 1;
+}
+
+.grid-card:hover {
+  transform: scale(1.06) translateY(-8px);
+  z-index: 20;
+  border-color: var(--border-highlight);
+  background: var(--bg-card-hover);
+  box-shadow: 0 25px 50px -10px rgba(0, 0, 0, 0.9), 0 0 35px rgba(6, 182, 212, 0.35);
+}
+
+.grid-card-screen {
+  position: relative;
+  width: 100%;
+  border-radius: 12px; /* Subtle 12px curves so status bar and UI are not cut off */
+  overflow: hidden;
+  background: #080c14;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.grid-card-screen img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.zoom-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 9, 14, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  color: var(--accent-cyan);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.grid-card:hover .zoom-overlay {
+  opacity: 1;
+}
+
+.grid-card-info {
+  margin-top: 0.85rem;
+  padding: 0 0.4rem 0.2rem;
+  text-align: left;
+}
+
+.grid-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+}
+
+.grid-card-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Lightbox Modal */
+.lightbox-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(4, 6, 10, 0.92);
+  backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.lightbox-modal.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.lightbox-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.lightbox-content img {
+  max-height: 75vh;
+  width: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9);
+}
+
+.lightbox-caption {
+  margin-top: 1.2rem;
+  text-align: center;
+}
+
+.lightbox-caption h3 {
+  font-size: 1.4rem;
+  color: var(--text-primary);
+}
+
+.lightbox-caption p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  font-size: 1.4rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+}
+
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  width: 50px;
+  height: 50px;
+  border-radius: var(--radius-full);
+  font-size: 2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+}
+
+.lightbox-nav:hover {
+  background: var(--accent-cyan);
+  color: #041019;
+}
+
+.lightbox-prev {
+  left: 2rem;
+}
+
+.lightbox-next {
+  right: 2rem;
+}
+
+@media (max-width: 768px) {
+  .lightbox-prev { left: 0.5rem; }
+  .lightbox-next { right: 0.5rem; }
+}
+</style>

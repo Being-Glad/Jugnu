@@ -1,0 +1,111 @@
+---
+const features = [
+  {
+    icon: 'lyrics',
+    title: 'Live Synced Lyrics & AI Translation',
+    desc: 'Sing along with Apple-style synchronized lyrics. Translate foreign lyrics instantly using real-time AI intelligence and Romanization (Furigana, Pinyin, Hangul).'
+  },
+  {
+    icon: 'equalizer',
+    title: '10-Band Parametric Equalizer',
+    desc: 'Fine-tune your sound with a 10-band parametric EQ, headphone calibration profiles (4,000+ presets), loudness normalization, and crossfade.'
+  },
+  {
+    icon: 'playback',
+    title: 'High-Quality Audio & Offline Cache',
+    desc: 'Stream music from YouTube Music at maximum quality, cache tracks for offline listening, skip silences automatically, and set sleep timers.'
+  },
+  {
+    icon: 'theme',
+    title: 'Material 3 Themes & Pure Black',
+    desc: 'Tailor your player with Light, Dark, Pure OLED Pitch Black, dynamic wallpaper accent colors, and 19 preset color schemes.'
+  },
+  {
+    icon: 'social',
+    title: 'Listen Together Rooms',
+    desc: 'Host virtual rooms with friends. Synchronize playback, track skipping, and queue management live in real time.'
+  },
+  {
+    icon: 'account',
+    title: 'YouTube Music Library Sync',
+    desc: 'Sign in to sync your playlists, liked songs, history, recommendations, and search across YouTube Music seamlessly.'
+  }
+];
+---
+
+<section class="features-section" id="features">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Key Features</span>
+      <h2 class="section-title">Built For Audio Enthusiasts</h2>
+      <p class="section-description">
+        Loaded with powerful customization, synchronized lyrics, lossless tuning, and seamless account synchronization.
+      </p>
+    </div>
+
+    <div class="features-grid">
+      {features.map((f) => (
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <h3 class="feature-title">{f.title}</h3>
+          <p class="feature-desc">{f.desc}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+.features-section {
+  padding: 5rem 0;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+}
+
+.feature-card {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 2.2rem;
+  backdrop-filter: blur(12px);
+  transition: var(--transition-normal);
+}
+
+.feature-card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-highlight);
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-lg);
+}
+
+.feature-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: var(--radius-md);
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c084fc;
+  margin-bottom: 1.2rem;
+}
+
+.feature-title {
+  font-size: 1.3rem;
+  margin-bottom: 0.75rem;
+}
+
+.feature-desc {
+  color: var(--text-secondary);
+  font-size: 0.96rem;
+  line-height: 1.6;
+}
+</style>

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Metrolist — Modern YouTube Music Client for Android</title>
+  <meta name="description" content="Metrolist is an open-source, material 3 YouTube Music client for Android with offline downloads, background playback, live lyrics, and listen-together features.">
+  <meta name="theme-color" content="#07090e">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://metrolist.cc/">
+  <meta property="og:title" content="Metrolist — Modern YouTube Music Client for Android">
+  <meta property="og:description" content="Stream, download, sync lyrics, listen together with friends, and enjoy YouTube Music with modern Material 3 design.">
+  <meta property="og:image" content="assets/logo.png">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:title" content="Metrolist — Modern YouTube Music Client for Android">
+  <meta property="twitter:description" content="Stream, download, sync lyrics, listen together with friends, and enjoy YouTube Music with modern Material 3 design.">
+  <meta property="twitter:image" content="assets/logo.png">
+
+  <link rel="icon" type="image/png" href="assets/icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Background Ambient Glow -->
+  <div class="ambient-glow-1"></div>
+  <div class="ambient-glow-2"></div>
+
+  <!-- Navigation Bar -->
+  <header class="navbar">
+    <div class="container">
+      <a href="#" class="nav-brand">
+        <img src="assets/icon.png" alt="Metrolist App Icon">
+        <span>Metrolist</span>
+      </a>
+
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle Navigation Menu">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+
+      <ul class="nav-links" id="nav-links">
+        <li><a href="#features" class="nav-link">Features</a></li>
+        <li><a href="#screenshots" class="nav-link">Screenshots</a></li>
+        <li><a href="#download" class="nav-link">Download</a></li>
+        <li><a href="#faq" class="nav-link">FAQ</a></li>
+        <li>
+          <a href="https://github.com/MetrolistGroup/Metrolist" target="_blank" class="nav-link">
+            GitHub ↗
+          </a>
+        </li>
+      </ul>
+
+      <div class="nav-cta">
+        <a href="https://github.com/MetrolistGroup/Metrolist/releases/latest/download/Metrolist.apk" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span id="release-version">Download APK</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-grid">
+        <div class="hero-content">
+          <div class="hero-badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            <span>Open-Source YouTube Music Client</span>
+          </div>
+
+          <h1 class="hero-title">
+            Your Music. <br/>
+            <span class="gradient-text">Beautifully Unbound.</span>
+          </h1>
+
+          <p class="hero-subtitle">
+            Experience YouTube Music with high-quality streaming, offline caching, real-time synced lyrics, AI translation, room listening with friends, and sleek Material 3 customization.
+          </p>
+
+          <div class="hero-actions">
+            <a href="https://github.com/MetrolistGroup/Metrolist/releases/latest/download/Metrolist.apk" class="btn btn-primary btn-lg">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Download Release APK</span>
+            </a>
+
+            <a href="https://github.com/MetrolistGroup/Metrolist" target="_blank" class="btn btn-secondary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              <span>View Source on GitHub</span>
+            </a>
+          </div>
+
+          <div class="hero-meta">
+            <div class="hero-meta-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Free & Open Source</span>
+            </div>
+            <div class="hero-meta-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>No Ads</span>
+            </div>
+            <div class="hero-meta-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Android 7.0+</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-media">
+          <div class="phone-container">
+            <div class="phone-glow"></div>
+            <div class="phone-mockup">
+              <div class="phone-notch"></div>
+              <img src="assets/screenshot_5.png" alt="Metrolist Music Player Screen" class="phone-screen">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Screenshots Showcase -->
+  <section class="showcase-section" id="screenshots">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Interface Showcase</span>
+        <h2 class="section-title">Designed for Modern Android</h2>
+        <p class="section-description">
+          Built according to Material 3 design guidelines with intuitive navigation, fluid transitions, and customizable dynamic color themes.
+        </p>
+      </div>
+
+      <div class="showcase-tabs">
+        <button class="tab-btn active" data-target="home">Home</button>
+        <button class="tab-btn" data-target="player">Now Playing</button>
+        <button class="tab-btn" data-target="lyrics">Live Synced Lyrics</button>
+        <button class="tab-btn" data-target="social">Listen Together</button>
+        <button class="tab-btn" data-target="artist">Artist View</button>
+        <button class="tab-btn" data-target="recognize">Music Recognizer</button>
+      </div>
+
+      <div class="showcase-display">
+        <div class="phone-container">
+          <div class="phone-glow"></div>
+          <div class="phone-mockup showcase-phone">
+            <div class="phone-notch"></div>
+            <img src="assets/screenshot_1.png" alt="App Screenshot" class="phone-screen showcase-img" id="showcase-img">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features-section" id="features">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Features</span>
+        <h2 class="section-title">Everything You Need for Endless Music</h2>
+        <p class="section-description">
+          Packed with high-performance audio tools, live lyrics, library sync, and social features.
+        </p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          </div>
+          <h3 class="feature-title">High Quality Streaming & Cache</h3>
+          <p class="feature-desc">
+            Stream any track from YouTube Music. Download and cache songs for offline playback, skip silence automatically, and set sleep timers.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <h3 class="feature-title">Live Synced Lyrics & AI Translation</h3>
+          <p class="feature-desc">
+            Sing along with synchronized live lyrics. Translate lyrics into your language seamlessly using integrated AI translation tools.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <h3 class="feature-title">Listen Together in Real-Time</h3>
+          <p class="feature-desc">
+            Host or join listening rooms with friends. Play, pause, and sync your music queue live across devices in real time.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+          </div>
+          <h3 class="feature-title">Audio Tuning & Equalizer</h3>
+          <p class="feature-desc">
+            Take full control of your sound with custom equalizer controls, audio normalization, silence skipping, and tempo/pitch adjustments.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+          </div>
+          <h3 class="feature-title">Material 3 & Custom Themes</h3>
+          <p class="feature-desc">
+            Choose from Light, Dark, Pure Pitch Black (OLED), or 19 preset accent palettes plus dynamic wallpaper color extraction.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+          </div>
+          <h3 class="feature-title">YouTube Music Account Sync</h3>
+          <p class="feature-desc">
+            Optionally sign in to sync your YouTube Music playlists, liked songs, history, and top recommendations directly in the app.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Download Section -->
+  <section class="download-section" id="download">
+    <div class="container">
+      <div class="download-card">
+        <h2 class="download-card-title">Get Metrolist Today</h2>
+        <p class="download-card-subtitle">
+          Download the latest stable APK directly from GitHub or your favorite open-source app repository.
+        </p>
+
+        <div class="hero-actions" style="justify-content: center; margin-bottom: 2.5rem;">
+          <a href="https://github.com/MetrolistGroup/Metrolist/releases/latest/download/Metrolist.apk" class="btn btn-primary btn-lg">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Download Release APK (GitHub)</span>
+          </a>
+        </div>
+
+        <div class="download-badges">
+          <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/MetrolistGroup/Metrolist/" class="badge-item" title="Download via Obtainium">
+            <img src="https://github.com/ImranR98/Obtainium/raw/main/assets/graphics/badge_obtainium.png" alt="Obtainium Badge">
+          </a>
+          <a href="https://apt.izzysoft.de/fdroid/index/apk/com.metrolist.music" class="badge-item" title="Download on IzzyOnDroid">
+            <img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" alt="IzzyOnDroid Badge">
+          </a>
+          <a href="https://www.openapk.net/metrolist/com.metrolist.music/" class="badge-item" title="Download on OpenAPK">
+            <img src="https://www.openapk.net/images/openapk-badge.png" alt="OpenAPK Badge">
+          </a>
+        </div>
+
+        <div class="install-steps">
+          <div class="step-box">
+            <span class="step-number">1</span>
+            <div class="step-text">Download the <strong>Metrolist.apk</strong> file from GitHub releases.</div>
+          </div>
+          <div class="step-box">
+            <span class="step-number">2</span>
+            <div class="step-text">Allow installation from "Unknown Sources" if prompted by your browser.</div>
+          </div>
+          <div class="step-box">
+            <span class="step-number">3</span>
+            <div class="step-text">Open the downloaded file, tap <strong>Install</strong>, and launch Metrolist!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="faq-section" id="faq">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Help & FAQ</span>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+      </div>
+
+      <div class="faq-list">
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>Is Metrolist completely free and open-source?</span>
+            <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer">
+            Yes! Metrolist is 100% free, open-source software licensed under GPL-3.0. There are no paid subscriptions, ads, or tracking code.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>Do I need a YouTube Music subscription to use Metrolist?</span>
+            <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer">
+            No, you do not need a paid YouTube Music subscription. Metrolist allows you to stream and cache songs directly.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>What if YouTube Music is unavailable in my country?</span>
+            <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer">
+            If YouTube Music is restricted in your region, you can connect via a VPN or proxy server pointing to a supported country.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>How does the "Listen Together" feature work?</span>
+            <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer">
+            Listen Together connects you and your friends to a shared room where playback, track switching, and queue changes are synchronized in real time across all connected devices.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <a href="#" class="nav-brand">
+            <img src="assets/icon.png" alt="Metrolist Logo">
+            <span>Metrolist</span>
+          </a>
+          <p>An open-source YouTube Music client for Android built with Kotlin and Material 3.</p>
+        </div>
+
+        <div class="footer-links-group">
+          <div class="footer-col">
+            <h4>Community</h4>
+            <ul>
+              <li><a href="https://dsc.gg/metrolist" target="_blank">Discord Server</a></li>
+              <li><a href="https://t.me/metrolistapp" target="_blank">Telegram Group</a></li>
+              <li><a href="https://hosted.weblate.org/projects/Metrolist/" target="_blank">Weblate Translations</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-col">
+            <h4>Downloads</h4>
+            <ul>
+              <li><a href="https://github.com/MetrolistGroup/Metrolist/releases/latest/download/Metrolist.apk">GitHub Release APK</a></li>
+              <li><a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/MetrolistGroup/Metrolist/">Obtainium</a></li>
+              <li><a href="https://apt.izzysoft.de/fdroid/index/apk/com.metrolist.music">IzzyOnDroid</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2026 Metrolist Group. Released under the GNU General Public License v3.0.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

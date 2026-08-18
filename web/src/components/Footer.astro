@@ -1,0 +1,144 @@
+---
+---
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <a href="#" class="footer-logo">
+          <img src="/logo.png" alt="Jugnu Logo" />
+          <span>Jugnu</span>
+        </a>
+        <p>An open-source YouTube Music client for Android with live synced lyrics, AI translation, and parametric equalizer tuning.</p>
+        
+        <!-- Thank You / Credits Badge -->
+        <div class="credits-badge">
+          <p>Built with ❤️ • Special thanks to <a href="https://github.com/MetrolistGroup/Metrolist" target="_blank" rel="noopener noreferrer">Metrolist</a> & open-source contributors.</p>
+        </div>
+      </div>
+
+      <div class="footer-links-group">
+        <div class="footer-col">
+          <h4>Community & Links</h4>
+          <ul>
+            <li><a href="https://github.com/MetrolistGroup/Metrolist" target="_blank" rel="noopener noreferrer">GitHub Repository</a></li>
+            <li><a href="https://dsc.gg/metrolist" target="_blank" rel="noopener noreferrer">Discord Server</a></li>
+            <li><a href="https://t.me/metrolistapp" target="_blank" rel="noopener noreferrer">Telegram Channel</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Downloads</h4>
+          <ul>
+            <li><a href="https://github.com/MetrolistGroup/Metrolist/releases/latest/download/Metrolist.apk">Jugnu Release APK</a></li>
+            <li><a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/MetrolistGroup/Metrolist/" target="_blank">Obtainium</a></li>
+            <li><a href="https://apt.izzysoft.de/fdroid/index/apk/com.metrolist.music" target="_blank">IzzyOnDroid</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>&copy; {new Date().getFullYear()} Jugnu. Released under GNU General Public License v3.0.</p>
+    </div>
+  </div>
+</footer>
+
+<style>
+.footer {
+  padding: 4rem 0 2rem;
+  border-top: 1px solid var(--border-color);
+  background: #04060a;
+}
+
+.footer-content {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.footer-brand {
+  max-width: 380px;
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.footer-logo img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.footer-brand p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-top: 0.8rem;
+}
+
+.credits-badge {
+  margin-top: 1.2rem;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.credits-badge a {
+  color: var(--accent-cyan);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.footer-links-group {
+  display: flex;
+  gap: 4rem;
+}
+
+.footer-col h4 {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.footer-col ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.footer-col a {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  transition: var(--transition-fast);
+}
+
+.footer-col a:hover {
+  color: var(--accent-cyan);
+}
+
+.footer-bottom {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+@media (max-width: 768px) {
+  .footer-content {
+    flex-direction: column;
+  }
+}
+</style>

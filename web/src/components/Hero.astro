@@ -1,0 +1,301 @@
+---
+---
+
+<section class="hero">
+  <div class="container">
+    <div class="hero-grid">
+      <!-- Left Content Column -->
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span class="badge-dot">●</span>
+          <span>STREAM. DOWNLOAD. SYNC.</span>
+        </div>
+
+        <h1 class="hero-title">
+          Your music. <br/>
+          <span class="gradient-text">Your vibe.</span>
+        </h1>
+
+        <p class="hero-subtitle">
+          Jugnu brings you ad-free streaming from YouTube Music with high-quality audio, synced live lyrics, AI translation, 10-band EQ tuning, and Listen Together rooms. No paywalls. No ads. Just pure music.
+        </p>
+
+        <div class="hero-actions">
+          <a href="https://github.com/MetrolistGroup/Metrolist/releases/latest/download/Metrolist.apk" class="btn btn-primary btn-lg">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Download Release APK</span>
+          </a>
+
+          <a href="https://github.com/MetrolistGroup/Metrolist" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            <span>GitHub</span>
+          </a>
+        </div>
+
+        <div class="hero-meta">
+          <div class="hero-meta-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Free & Open Source</span>
+          </div>
+          <div class="hero-meta-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>No Ads</span>
+          </div>
+          <div class="hero-meta-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Android 7.0+</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Interactive Dual Stacked Screens with Smooth Position Swap -->
+      <div class="hero-showcase">
+        <div class="stacked-screens-wrapper" id="swap-container" title="Click or hover to swap screens">
+          <div class="stacked-screens" id="stacked-screens">
+            <!-- Screen A: Home Screen -->
+            <div class="screen-card card-a">
+              <img src="/screenshots/home.jpg" alt="Jugnu Home Screen" />
+            </div>
+
+            <!-- Screen B: Player Screen -->
+            <div class="screen-card card-b">
+              <img src="/screenshots/player.jpg" alt="Jugnu Player Screen" />
+            </div>
+          </div>
+          <div class="swap-hint">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16"/></svg>
+            <span>Tap to swap screens</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const container = document.getElementById('swap-container');
+  const stacked = document.getElementById('stacked-screens');
+
+  if (container && stacked) {
+    let swapped = false;
+
+    const toggleSwap = () => {
+      swapped = !swapped;
+      if (swapped) {
+        stacked.classList.add('swapped');
+      } else {
+        stacked.classList.remove('swapped');
+      }
+    };
+
+    container.addEventListener('click', toggleSwap);
+
+    // Auto swap animation every 4 seconds if user isn't interacting
+    let autoSwapTimer = setInterval(toggleSwap, 4500);
+
+    container.addEventListener('mouseenter', () => {
+      clearInterval(autoSwapTimer);
+    });
+
+    container.addEventListener('mouseleave', () => {
+      autoSwapTimer = setInterval(toggleSwap, 4500);
+    });
+  }
+</script>
+
+<style>
+.hero {
+  position: relative;
+  padding: 8.5rem 0 5rem;
+  overflow: hidden;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3.5rem;
+  align-items: center;
+}
+
+.hero-content {
+  z-index: 2;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 1.1rem;
+  border-radius: var(--radius-full);
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px solid var(--border-highlight);
+  color: var(--accent-cyan);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  margin-bottom: 1.5rem;
+}
+
+.badge-dot {
+  font-size: 0.7rem;
+  color: var(--accent-teal);
+}
+
+.hero-title {
+  font-size: 4.2rem;
+  letter-spacing: -2px;
+  line-height: 1.05;
+  margin-bottom: 1.4rem;
+  font-weight: 800;
+}
+
+.hero-subtitle {
+  font-size: 1.15rem;
+  color: var(--text-secondary);
+  margin-bottom: 2.4rem;
+  max-width: 520px;
+  font-weight: 400;
+  line-height: 1.7;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.2rem;
+  margin-bottom: 2.2rem;
+}
+
+.hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.hero-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.hero-meta-item svg {
+  color: var(--accent-teal);
+}
+
+/* Stacked Dual Screens Component - Curved Subtle Edges & Full Uncropped Image */
+.hero-showcase {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.stacked-screens-wrapper {
+  position: relative;
+  cursor: pointer;
+  padding: 10px;
+}
+
+.stacked-screens {
+  position: relative;
+  width: 270px;
+  height: 570px;
+}
+
+.screen-card {
+  position: absolute;
+  top: 0;
+  width: 260px;
+  border-radius: 14px; /* Reduced curves so screenshots are not cut off */
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #080c14;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.85), 0 0 30px rgba(6, 182, 212, 0.2);
+  transition: transform 0.65s cubic-bezier(0.34, 1.4, 0.64, 1), z-index 0.65s, opacity 0.5s ease, filter 0.5s ease, box-shadow 0.5s ease;
+}
+
+.screen-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain; /* Full uncropped screenshot display */
+}
+
+/* Card A (Home) default front */
+.card-a {
+  left: 0;
+  z-index: 10;
+  transform: rotate(-3deg) scale(1);
+  opacity: 1;
+}
+
+/* Card B (Player) default back */
+.card-b {
+  left: 35px;
+  z-index: 5;
+  transform: rotate(5deg) scale(0.94);
+  opacity: 0.75;
+  filter: brightness(0.85);
+}
+
+/* Swapped State: Card B becomes front, Card A moves back */
+.stacked-screens.swapped .card-a {
+  left: 35px;
+  z-index: 5;
+  transform: rotate(5deg) scale(0.94);
+  opacity: 0.75;
+  filter: brightness(0.85);
+}
+
+.stacked-screens.swapped .card-b {
+  left: 0;
+  z-index: 10;
+  transform: rotate(-3deg) scale(1);
+  opacity: 1;
+  filter: brightness(1);
+  box-shadow: 0 25px 55px -8px rgba(0, 0, 0, 0.9), 0 0 40px rgba(6, 182, 212, 0.35);
+}
+
+.swap-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.stacked-screens-wrapper:hover .swap-hint {
+  color: var(--accent-cyan);
+}
+
+@media (max-width: 992px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .hero-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .hero-title {
+    font-size: 3.2rem;
+  }
+
+  .hero-actions {
+    justify-content: center;
+  }
+
+  .hero-showcase {
+    margin-top: 2rem;
+  }
+}
+</style>

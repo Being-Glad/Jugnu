@@ -1,0 +1,121 @@
+---
+const faqs = [
+  {
+    q: 'Is Jugnu completely free and open-source?',
+    a: 'Yes! Jugnu is 100% free open-source software under the GPL-3.0 license. There are no paid subscriptions, ads, or tracking code.'
+  },
+  {
+    q: 'Do I need a YouTube Music subscription?',
+    a: 'No, a YouTube Music Premium subscription is not required. You can stream, cache, and sync lyrics directly.'
+  },
+  {
+    q: 'What if YouTube Music is unavailable in my region?',
+    a: 'If YouTube Music is restricted in your region, you can connect using a VPN or proxy server pointing to a supported country.'
+  },
+  {
+    q: 'How does the "Listen Together" room feature work?',
+    a: 'Listen Together lets you host or join rooms with friends. Playback, track skipping, and queue management are synchronized in real time across all connected devices.'
+  }
+];
+---
+
+<section class="faq-section" id="faq">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">FAQ</span>
+      <h2 class="section-title">Frequently Asked Questions</h2>
+    </div>
+
+    <div class="faq-list">
+      {faqs.map((faq) => (
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>{faq.q}</span>
+            <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer">
+            <p>{faq.a}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script>
+  const faqQuestions = document.querySelectorAll('.faq-question');
+
+  faqQuestions.forEach(q => {
+    q.addEventListener('click', () => {
+      const item = q.parentElement;
+      const isActive = item?.classList.contains('active');
+
+      document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('active'));
+
+      if (!isActive) {
+        item?.classList.add('active');
+      }
+    });
+  });
+</script>
+
+<style>
+.faq-section {
+  padding: 5rem 0;
+}
+
+.faq-list {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.faq-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: var(--transition-fast);
+}
+
+.faq-question {
+  width: 100%;
+  padding: 1.4rem 1.8rem;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  font-weight: 600;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.faq-icon {
+  transition: transform 0.3s ease;
+  color: var(--accent-cyan);
+}
+
+.faq-item.active .faq-icon {
+  transform: rotate(180deg);
+}
+
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease, padding 0.35s ease;
+  color: var(--text-secondary);
+  font-size: 0.98rem;
+  line-height: 1.7;
+}
+
+.faq-item.active .faq-answer {
+  max-height: 250px;
+  padding: 0 1.8rem 1.4rem;
+}
+</style>
