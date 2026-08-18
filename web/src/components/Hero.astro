@@ -48,12 +48,12 @@
         </div>
       </div>
 
-      <!-- Right Column: Seamless Thanos Snap Disintegration & Simultaneous Reveal -->
+      <!-- Right Column: Larger Image Showcase with Perfectly Aligned Layers & Real-time Dissolve Reveal -->
       <div class="hero-showcase">
         <div class="snap-wrapper" id="snap-wrapper">
           
           <div class="phone-frame">
-            <!-- Layer B: Redesigned Jugnu Home Screen (Underneath - Always Visible on Snap) -->
+            <!-- Layer B: Redesigned Jugnu Home Screen (Underneath - Always Perfectly Aligned) -->
             <div class="jugnu-screen-layer" id="jugnu-layer">
               <img src="/screenshots/home.jpg" alt="Jugnu Redesigned Home Screen" />
             </div>
@@ -100,12 +100,12 @@
     canvas.width = width;
     canvas.height = height;
 
-    // Draw metrolist image onto canvas
+    // Draw full metrolist image onto canvas initially
     ctx.drawImage(metrolistImg, 0, 0, width, height);
     const imgData = ctx.getImageData(0, 0, width, height);
     const data = imgData.data;
 
-    // Immediately hide top image so canvas handles particles & Jugnu is revealed SIMULTANEOUSLY underneath!
+    // Hide img element so canvas controls the entire dissolve + reveal process
     metrolistImg.style.opacity = '0';
 
     if (badgeContent) {
@@ -113,18 +113,21 @@
       badgeContent.className = 'badge-content tag-jugnu';
     }
 
-    // Generate fine dust particles
+    // Build grid of particles
+    const step = 4; // Fine pixel grain for crisp dissolution
     const particles: Array<{
-      x: number;
-      y: number;
+      ox: number; // original pixel x
+      oy: number; // original pixel y
+      x: number;  // current animated particle x
+      y: number;  // current animated particle y
       color: string;
       vx: number;
       vy: number;
       size: number;
       delay: number;
+      launched: boolean;
     }> = [];
 
-    const step = 5;
     for (let y = 0; y < height; y += step) {
       for (let x = 0; x < width; x += step) {
         const index = (y * width + x) * 4;
@@ -133,16 +136,21 @@
           const r = data[index];
           const g = data[index + 1];
           const b = data[index + 2];
-          const delay = (x / width) * 250 + Math.random() * 150;
+
+          // Disintegration wave moves from bottom-right up to top-left
+          const delay = ((height - y) / height) * 350 + ((width - x) / width) * 200 + Math.random() * 120;
 
           particles.push({
+            ox: x,
+            oy: y,
             x: x,
             y: y,
             color: `rgba(${r}, ${g}, ${b}, 1)`,
-            vx: 1.5 + Math.random() * 3.5,
-            vy: -1.0 - Math.random() * 2.5,
-            size: Math.random() * 2.5 + 1.2,
-            delay: delay
+            vx: 1.2 + Math.random() * 3, // Fly rightward
+            vy: -2.0 - Math.random() * 3.5, // Fly upward into dust
+            size: step,
+            delay: delay,
+            launched: false
           });
         }
       }
@@ -158,16 +166,21 @@
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
+
         if (elapsed < p.delay) {
+          // Pixel hasn't snapped yet -> Draw it on canvas
           ctx.fillStyle = p.color;
-          ctx.fillRect(p.x, p.y, p.size, p.size);
+          ctx.fillRect(p.ox, p.oy, p.size, p.size);
           activeCount++;
         } else {
+          // Pixel IS SNAPPING right now!
+          // We DO NOT draw on (ox, oy), so the holes immediately reveal Jugnu underneath!
           const pElapsed = elapsed - p.delay;
-          if (pElapsed < 900) {
-            p.x += p.vx + Math.sin(pElapsed / 40) * 0.4;
+          if (pElapsed < 800) {
+            // Update flying particle position as dust flies upward
+            p.x += p.vx + Math.sin(pElapsed / 30) * 0.5;
             p.y += p.vy;
-            const alpha = Math.max(0, 1 - pElapsed / 900);
+            const alpha = Math.max(0, 1 - pElapsed / 800);
 
             ctx.fillStyle = p.color;
             ctx.globalAlpha = alpha;
@@ -210,7 +223,6 @@
     }
   }
 
-  // Silent Interactive Click
   wrapper?.addEventListener('click', () => {
     if (isSnapped) {
       resetSnap();
@@ -219,7 +231,6 @@
     }
   });
 
-  // Silent Automatic Loop unless hovered
   function startAutoLoop() {
     stopAutoLoop();
     autoLoopTimer = setInterval(() => {
@@ -228,7 +239,7 @@
       } else {
         resetSnap();
       }
-    }, 4200);
+    }, 4500);
   }
 
   function stopAutoLoop() {
@@ -241,7 +252,6 @@
   wrapper?.addEventListener('mouseenter', stopAutoLoop);
   wrapper?.addEventListener('mouseleave', startAutoLoop);
 
-  // Start auto-loop on initial load
   setTimeout(() => {
     doThanosSnap();
     startAutoLoop();
@@ -258,7 +268,7 @@
 .hero-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  gap: 1.5rem;
   align-items: center;
 }
 
@@ -344,19 +354,21 @@
   cursor: pointer;
 }
 
+/* Increased Hero Image Size & Perfect Alignment Frame */
 .phone-frame {
   position: relative;
-  width: 260px;
-  height: 570px;
+  width: 300px;
+  height: 640px;
+  border-radius: 16px;
 }
 
-/* Screen Layers */
+/* Both Screen Layers are 100% Identically Sized & Positioned */
 .jugnu-screen-layer, .metrolist-screen-layer {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 260px;
-  border-radius: 14px;
+  inset: 0;
+  width: 300px;
+  height: 640px;
+  border-radius: 16px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: #080c14;
@@ -366,10 +378,11 @@
 
 .jugnu-screen-layer img, .metrolist-screen-layer img {
   width: 100%;
-  height: auto;
+  height: 100%;
   display: block;
-  object-fit: contain;
-  border-radius: 14px;
+  object-fit: cover;
+  object-position: top center;
+  border-radius: 16px;
 }
 
 .metrolist-screen-layer {
@@ -378,13 +391,12 @@
 
 .jugnu-screen-layer {
   z-index: 5;
-  opacity: 1; /* Always 100% visible underneath for immediate simultaneous reveal! */
+  opacity: 1; /* Always 100% visible underneath for immediate real-time pixel reveal! */
 }
 
 canvas#thanos-canvas {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
@@ -424,7 +436,7 @@ canvas#thanos-canvas {
   .hero-grid {
     grid-template-columns: 1fr;
     text-align: center;
-    gap: 2.5rem;
+    gap: 2rem;
   }
 
   .hero-content {
