@@ -8,16 +8,16 @@
       <div class="hero-content">
         <div class="hero-badge">
           <span class="badge-dot">●</span>
-          <span>REDESIGNED & ENHANCED</span>
+          <span>THE THANOS EVOLUTION</span>
         </div>
 
         <h1 class="hero-title">
-          Metrolist, evolved into <br/>
-          <span class="gradient-text">Jugnu.</span>
+          Snap away the old. <br/>
+          <span class="gradient-text">Welcome Jugnu.</span>
         </h1>
 
         <p class="hero-subtitle">
-          We took the open-source Metrolist foundation and transformed it into a lightning-fast, visually stunning YouTube Music experience — with low-latency playback, live synced lyrics, AI translation, and built-in AI music recommendation.
+          Watch the legacy Metrolist interface disintegrate away. Jugnu delivers low-latency playback, Apple-style live synced lyrics, AI translation, and built-in AI music recommendation.
         </p>
 
         <div class="hero-actions">
@@ -26,10 +26,9 @@
             <span>Download Jugnu APK</span>
           </a>
 
-          <a href="https://github.com/Being-Glad/Jugnu" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-            <span>GitHub</span>
-          </a>
+          <button class="btn btn-secondary" id="trigger-snap-btn">
+            <span>🤌 Snap Again</span>
+          </button>
         </div>
 
         <div class="hero-meta">
@@ -48,33 +47,27 @@
         </div>
       </div>
 
-      <!-- Right Column: Before (Metrolist) -> After (Jugnu Redesign) Transition -->
+      <!-- Right Column: Thanos Snap Transformation -->
       <div class="hero-showcase">
-        <div class="stacked-screens-wrapper" id="morph-container" title="Click to cycle before & after UI">
-          <div class="stacked-screens" id="stacked-screens">
-            <!-- Screen 1: Original Metrolist (Before) -->
-            <div class="screen-card card-old" id="card-old">
-              <div class="screen-tag tag-before">Metrolist (Original)</div>
-              <img src="/screenshots/metrolist_old.jpg" alt="Original Metrolist Interface" />
-            </div>
-
-            <!-- Screen 2: Jugnu Home Redesign (After) -->
-            <div class="screen-card card-jugnu-home" id="card-jugnu-home">
-              <div class="screen-tag tag-after">Jugnu (Redesigned)</div>
-              <img src="/screenshots/home.jpg" alt="Jugnu Redesigned Home Screen" />
-            </div>
-
-            <!-- Screen 3: Jugnu Player Redesign -->
-            <div class="screen-card card-jugnu-player" id="card-jugnu-player">
-              <div class="screen-tag tag-after">Jugnu (Now Playing)</div>
-              <img src="/screenshots/player.jpg" alt="Jugnu Player Screen" />
-            </div>
+        <div class="snap-wrapper" id="snap-wrapper" title="Click to trigger Thanos Snap">
+          
+          <!-- Layer B: Redesigned Jugnu Home Screen (Underneath) -->
+          <div class="jugnu-screen-layer" id="jugnu-layer">
+            <div class="screen-badge tag-jugnu">✨ Jugnu (Redesigned)</div>
+            <img src="/screenshots/home.jpg" alt="Jugnu Redesigned Home Screen" />
           </div>
 
-          <div class="morph-status" id="morph-status">
-            <span class="status-indicator" id="status-indicator">● Metrolist Original</span>
-            <span class="swap-action-hint">Tap to transform ⚡</span>
+          <!-- Layer A: Metrolist Original Home Screen (Top Overlay) -->
+          <div class="metrolist-screen-layer" id="metrolist-layer">
+            <div class="screen-badge tag-metrolist">● Metrolist (Original)</div>
+            <img id="metrolist-img" src="/screenshots/metrolist_old.jpg" alt="Original Metrolist Home Screen" />
+            <canvas id="thanos-canvas"></canvas>
           </div>
+
+          <div class="snap-hint-bar">
+            <span id="snap-status-text">🤌 Tap image to snap away Metrolist</span>
+          </div>
+
         </div>
       </div>
     </div>
@@ -82,54 +75,161 @@
 </section>
 
 <script>
-  const container = document.getElementById('morph-container');
-  const cardOld = document.getElementById('card-old');
-  const cardHome = document.getElementById('card-jugnu-home');
-  const cardPlayer = document.getElementById('card-jugnu-player');
-  const statusIndicator = document.getElementById('status-indicator');
+  const wrapper = document.getElementById('snap-wrapper');
+  const metrolistLayer = document.getElementById('metrolist-layer');
+  const metrolistImg = document.getElementById('metrolist-img') as HTMLImageElement;
+  const canvas = document.getElementById('thanos-canvas') as HTMLCanvasElement;
+  const triggerBtn = document.getElementById('trigger-snap-btn');
+  const statusText = document.getElementById('snap-status-text');
 
-  if (container && cardOld && cardHome && cardPlayer && statusIndicator) {
-    let state = 0; // 0: Metrolist Old, 1: Jugnu Home, 2: Jugnu Player
+  let isSnapped = false;
+  let isAnimating = false;
 
-    const updateCards = () => {
-      if (state === 0) {
-        // Metrolist Old front
-        cardOld.className = 'screen-card card-front';
-        cardHome.className = 'screen-card card-middle';
-        cardPlayer.className = 'screen-card card-back';
-        statusIndicator.innerHTML = '● <strong style="color: #94a3b8">Metrolist (Original)</strong>';
-      } else if (state === 1) {
-        // Jugnu Home front (Metrolist slides away)
-        cardOld.className = 'screen-card card-disappear';
-        cardHome.className = 'screen-card card-front';
-        cardPlayer.className = 'screen-card card-middle';
-        statusIndicator.innerHTML = '✨ <strong style="color: var(--accent-cyan)">Jugnu Redesigned Home</strong>';
-      } else if (state === 2) {
-        // Jugnu Player front
-        cardOld.className = 'screen-card card-back';
-        cardHome.className = 'screen-card card-middle';
-        cardPlayer.className = 'screen-card card-front';
-        statusIndicator.innerHTML = '🎵 <strong style="color: var(--accent-teal)">Jugnu Synced Player</strong>';
+  function doThanosSnap() {
+    if (isAnimating) return;
+    isAnimating = true;
+
+    if (!canvas || !metrolistImg || !metrolistLayer) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const width = metrolistLayer.clientWidth;
+    const height = metrolistLayer.clientHeight;
+    canvas.width = width;
+    canvas.height = height;
+
+    // Draw metrolist image onto canvas
+    ctx.drawImage(metrolistImg, 0, 0, width, height);
+    const imgData = ctx.getImageData(0, 0, width, height);
+    const data = imgData.data;
+
+    // Hide original metrolist image
+    metrolistImg.style.opacity = '0';
+    if (statusText) statusText.innerHTML = '💥 Disintegrating Metrolist...';
+
+    // Generate dust particles from pixels
+    const particles: Array<{
+      x: number;
+      y: number;
+      color: string;
+      vx: number;
+      vy: number;
+      size: number;
+      alpha: number;
+      delay: number;
+    }> = [];
+
+    const step = 6; // Sampling frequency
+    for (let y = 0; y < height; y += step) {
+      for (let x = 0; x < width; x += step) {
+        const index = (y * width + x) * 4;
+        const a = data[index + 3];
+        if (a > 30) {
+          const r = data[index];
+          const g = data[index + 1];
+          const b = data[index + 2];
+
+          // Particle delay based on horizontal position (snaps left to right)
+          const delay = (x / width) * 400 + Math.random() * 200;
+
+          particles.push({
+            x: x,
+            y: y,
+            color: `rgba(${r}, ${g}, ${b}, 1)`,
+            vx: 1.5 + Math.random() * 3, // Fly rightward
+            vy: -1.2 - Math.random() * 2.5, // Fly upward
+            size: Math.random() * 3 + 1.5,
+            alpha: 1,
+            delay: delay
+          });
+        }
       }
-    };
+    }
 
-    updateCards();
+    const startTime = performance.now();
 
-    const nextState = () => {
-      state = (state + 1) % 3;
-      updateCards();
-    };
+    function animateParticles(now: number) {
+      const elapsed = now - startTime;
+      ctx.clearRect(0, 0, width, height);
 
-    container.addEventListener('click', nextState);
+      let activeCount = 0;
 
-    // Auto transformation cycle: shows Metrolist old briefly, then morphs into Jugnu!
-    let timer = setInterval(nextState, 3800);
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        if (elapsed < p.delay) {
+          // Draw pixel before it disintegrates
+          ctx.fillStyle = p.color;
+          ctx.fillRect(p.x, p.y, p.size, p.size);
+          activeCount++;
+        } else {
+          // Particle has snapped!
+          const pElapsed = elapsed - p.delay;
+          if (pElapsed < 1200) {
+            p.x += p.vx + Math.sin(pElapsed / 50) * 0.5;
+            p.y += p.vy;
+            p.alpha = Math.max(0, 1 - pElapsed / 1200);
 
-    container.addEventListener('mouseenter', () => clearInterval(timer));
-    container.addEventListener('mouseleave', () => {
-      timer = setInterval(nextState, 3800);
-    });
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = p.alpha;
+            ctx.fillRect(p.x, p.y, p.size, p.size);
+            ctx.globalAlpha = 1;
+            activeCount++;
+          }
+        }
+      }
+
+      if (activeCount > 0) {
+        requestAnimationFrame(animateParticles);
+      } else {
+        ctx.clearRect(0, 0, width, height);
+        metrolistLayer.style.pointerEvents = 'none';
+        metrolistLayer.style.opacity = '0';
+        isSnapped = true;
+        isAnimating = false;
+        if (statusText) statusText.innerHTML = '✨ Jugnu Born! (Tap to reset)';
+      }
+    }
+
+    requestAnimationFrame(animateParticles);
   }
+
+  function resetSnap() {
+    if (isAnimating) return;
+    if (!metrolistImg || !metrolistLayer || !canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    metrolistLayer.style.pointerEvents = 'auto';
+    metrolistLayer.style.opacity = '1';
+    metrolistImg.style.opacity = '1';
+    isSnapped = false;
+    if (statusText) statusText.innerHTML = '🤌 Tap image to snap away Metrolist';
+  }
+
+  wrapper?.addEventListener('click', () => {
+    if (!isSnapped) {
+      doThanosSnap();
+    } else {
+      resetSnap();
+    }
+  });
+
+  triggerBtn?.addEventListener('click', () => {
+    if (isSnapped) {
+      resetSnap();
+      setTimeout(doThanosSnap, 400);
+    } else {
+      doThanosSnap();
+    }
+  });
+
+  // Auto-trigger Thanos snap 1.8 seconds after load so user sees the magic!
+  setTimeout(() => {
+    if (!isSnapped && !isAnimating) {
+      doThanosSnap();
+    }
+  }, 1800);
 </script>
 
 <style>
@@ -220,20 +320,15 @@
   align-items: center;
 }
 
-.stacked-screens-wrapper {
-  position: relative;
-  cursor: pointer;
-  padding: 10px;
-}
-
-.stacked-screens {
+.snap-wrapper {
   position: relative;
   width: 270px;
   height: 570px;
+  cursor: pointer;
 }
 
-/* Card Styling */
-.screen-card {
+/* Base Screen Container */
+.jugnu-screen-layer, .metrolist-screen-layer {
   position: absolute;
   top: 0;
   left: 0;
@@ -242,24 +337,43 @@
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: #080c14;
-  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.85);
-  transition: transform 0.7s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.7s ease, filter 0.7s ease;
+  box-shadow: 0 25px 55px -8px rgba(0, 0, 0, 0.9), 0 0 35px rgba(6, 182, 212, 0.3);
+  transition: opacity 0.5s ease;
 }
 
-.screen-card img {
+.jugnu-screen-layer img, .metrolist-screen-layer img {
   width: 100%;
   height: auto;
   display: block;
   object-fit: contain;
+  transition: opacity 0.3s ease;
 }
 
-/* Screen Tags */
-.screen-tag {
+.metrolist-screen-layer {
+  z-index: 10;
+}
+
+.jugnu-screen-layer {
+  z-index: 5;
+}
+
+canvas#thanos-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 12;
+}
+
+/* Badges */
+.screen-badge {
   position: absolute;
   top: 12px;
   left: 12px;
-  z-index: 10;
-  padding: 0.3rem 0.75rem;
+  z-index: 20;
+  padding: 0.35rem 0.85rem;
   border-radius: var(--radius-full);
   font-size: 0.72rem;
   font-weight: 700;
@@ -267,70 +381,31 @@
   backdrop-filter: blur(8px);
 }
 
-.tag-before {
+.tag-metrolist {
   background: rgba(15, 23, 42, 0.85);
   color: #94a3b8;
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-.tag-after {
+.tag-jugnu {
   background: rgba(6, 182, 212, 0.9);
   color: #041019;
   box-shadow: 0 4px 15px rgba(6, 182, 212, 0.4);
 }
 
-/* Card Stack States */
-.card-front {
-  z-index: 10;
-  transform: rotate(-3deg) scale(1);
-  opacity: 1;
-  filter: brightness(1);
-  box-shadow: 0 25px 55px -8px rgba(0, 0, 0, 0.9), 0 0 35px rgba(6, 182, 212, 0.3);
-}
-
-.card-middle {
-  z-index: 5;
-  transform: rotate(5deg) translateX(30px) scale(0.94);
-  opacity: 0.8;
-  filter: brightness(0.85);
-}
-
-.card-back {
-  z-index: 2;
-  transform: rotate(-7deg) translateX(-20px) scale(0.88);
-  opacity: 0.5;
-  filter: brightness(0.7);
-}
-
-/* Disappear / Morph Animation for Metrolist Old */
-.card-disappear {
-  z-index: 15;
-  transform: translateY(-80px) rotate(-15deg) scale(0.75);
-  opacity: 0;
-  filter: blur(8px);
-  pointer-events: none;
-}
-
-.morph-status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-top: 1.2rem;
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius-full);
-  background: rgba(16, 24, 39, 0.7);
-  border: 1px solid var(--border-color);
-  backdrop-filter: blur(10px);
-  font-size: 0.85rem;
-}
-
-.swap-action-hint {
+.snap-hint-bar {
+  position: absolute;
+  bottom: -45px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.82rem;
   color: var(--text-muted);
-  font-size: 0.78rem;
+  font-weight: 600;
+  transition: color 0.2s ease;
 }
 
-.stacked-screens-wrapper:hover .swap-action-hint {
+.snap-wrapper:hover .snap-hint-bar {
   color: var(--accent-cyan);
 }
 
