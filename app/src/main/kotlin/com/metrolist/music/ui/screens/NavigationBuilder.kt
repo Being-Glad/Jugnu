@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -62,6 +62,7 @@ import com.metrolist.music.ui.screens.settings.integrations.LastFMSettings
 import com.metrolist.music.ui.screens.settings.integrations.ListenTogetherSettings
 
 import com.metrolist.music.ui.screens.wrapped.WrappedScreen
+import com.metrolist.music.ui.screens.AiRecommendationScreen
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
 
@@ -72,9 +73,13 @@ fun NavGraphBuilder.navigationBuilder(
     latestVersionName: String,
     activity: Activity,
     snackbarHostState: SnackbarHostState,
+    playerBottomSheetState: com.metrolist.music.ui.component.BottomSheetState? = null,
 ) {
     composable(Screens.Home.route) {
-        HomeScreen(snackbarHostState = snackbarHostState)
+        HomeScreen(
+            snackbarHostState = snackbarHostState,
+            playerBottomSheetState = playerBottomSheetState
+        )
     }
 
     composable(Screens.Search.route) { backStackEntry ->
@@ -406,6 +411,10 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable("settings/about") {
         AboutScreen(navController)
+    }
+
+    composable("recommendations") {
+        AiRecommendationScreen()
     }
 
     composable("login") {

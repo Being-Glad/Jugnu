@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -136,27 +136,35 @@ internal fun LyricsLine(
     romanizeAsMain: Boolean,
     enabledLanguages: List<String>,
     romanizeLyrics: Boolean,
+    lyricsDisplayPreset: String,
     onSizeChanged: (Int) -> Unit,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isCompactMode = lyricsTextSize <= 24f
     val density = LocalDensity.current
     
     val itemModifier = modifier
         .fillMaxWidth()
         .onSizeChanged { onSizeChanged(it.height) }
         .clip(RoundedCornerShape(8.dp))
-        .combinedClickable(
-            onClick = onClick,
-            onLongClick = onLongClick
-        )
+        .let {
+            if (isCompactMode) {
+                it
+            } else {
+                it.combinedClickable(
+                    onClick = onClick,
+                    onLongClick = onLongClick
+                )
+            }
+        }
         .background(if (isSelected && isSelectionModeActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.Transparent)
         .padding(
             start = when (lyricsTextPosition) { LyricsPosition.LEFT, LyricsPosition.RIGHT -> 11.dp; LyricsPosition.CENTER -> 24.dp },
             end = when (lyricsTextPosition) { LyricsPosition.LEFT, LyricsPosition.RIGHT -> 11.dp; LyricsPosition.CENTER -> 24.dp },
-            top = if (item.isBackground) 0.dp else 12.dp,
-            bottom = if (item.isBackground) 2.dp else 12.dp // simplified gap logic
+            top = if (isCompactMode) (if (item.isBackground) 0.dp else 4.dp) else (if (item.isBackground) 0.dp else 12.dp),
+            bottom = if (isCompactMode) (if (item.isBackground) 1.dp else 4.dp) else (if (item.isBackground) 2.dp else 12.dp)
         )
 
     val agentAlignment = when {
@@ -200,23 +208,51 @@ internal fun LyricsLine(
                 val inactiveAlpha = if (item.isBackground) 0.08f else 0.2f
                 val activeAlpha = 1f
                 val focusedAlpha = if (item.isBackground) 0.5f else 0.3f
-                val targetAlpha = if (!isSynced || item.isBackground || isActiveLine) {
-                    activeAlpha
-                } else if (isAutoScrollEnabled && displayedCurrentLineIndex >= 0) {
-                    when (abs(index - displayedCurrentLineIndex)) {
-                        0 -> focusedAlpha
-                        1 -> 0.2f; 2 -> 0.2f; 3 -> 0.15f; 4 -> 0.1f; else -> 0.08f
+                val targetAlpha = if (isCompactMode && isSynced) {
+                    if (isActiveLine) {
+                        1f
+                    } else if (abs(index - displayedCurrentLineIndex) == 1) {
+                        0.5f
+                    } else {
+                        0f
                     }
-                } else inactiveAlpha
+                } else {
+                    if (!isSynced || item.isBackground || isActiveLine) {
+                        activeAlpha
+                    } else if (isAutoScrollEnabled && displayedCurrentLineIndex >= 0) {
+                        when (abs(index - displayedCurrentLineIndex)) {
+                            0 -> focusedAlpha
+                            1 -> 0.2f; 2 -> 0.2f; 3 -> 0.15f; 4 -> 0.1f; else -> 0.08f
+                        }
+                    } else inactiveAlpha
+                }
                 
                 val animatedAlpha by animateFloatAsState(targetAlpha, tween(250), label = "lyricsLineAlpha")
                 val lineColor = expressiveAccent.copy(alpha = if (item.isBackground) focusedAlpha else animatedAlpha)
                 
                 val romanizedTextState by item.romanizedTextFlow.collectAsStateWithLifecycle()
-                val isRomanizedAvailable = romanizedTextState != null
-                val mainTextRaw = if (romanizeAsMain && isRomanizedAvailable) romanizedTextState else item.text
-                val subTextRaw = if (romanizeAsMain && isRomanizedAvailable) item.text else romanizedTextState
-                val mainText = if (item.isBackground) mainTextRaw?.removePrefix("(")?.removeSuffix(")") else mainTextRaw
+                val romanizedText = romanizedTextState
+                val isRomanizedAvailable = romanizedText != null
+                val (mainTextRaw, subTextRaw) = remember(item.text, romanizedText, lyricsDisplayPreset, romanizeAsMain) {
+                    if (lyricsDisplayPreset == "SMART") {
+                        if (com.metrolist.music.lyrics.LyricsUtils.isLatinOrEnglish(item.text)) {
+                            Pair(item.text, null)
+                        } else if (com.metrolist.music.lyrics.LyricsUtils.isHindi(item.text)) {
+                            Pair(item.text, romanizedText)
+                        } else {
+                            if (isRomanizedAvailable) {
+                                Pair(romanizedText, item.text)
+                            } else {
+                                Pair(item.text, null)
+                            }
+                        }
+                    } else {
+                        val main = if (romanizeAsMain && isRomanizedAvailable) romanizedText else item.text
+                        val sub = if (romanizeAsMain && isRomanizedAvailable) item.text else romanizedText
+                        Pair(main, sub)
+                    }
+                }
+                val mainText = if (item.isBackground) mainTextRaw.removePrefix("(").removeSuffix(")") else mainTextRaw
                 val subText = if (item.isBackground) subTextRaw?.removePrefix("(")?.removeSuffix(")") else subTextRaw
 
                 val lyricStyle = TextStyle(
@@ -236,7 +272,7 @@ internal fun LyricsLine(
 
                 val effectiveWords = if (item.words?.isNotEmpty() == true) {
                     item.words
-                } else if (mainText != null) {
+                } else {
                     remember(mainText, item.time) {
                         val words = mainText.split(Regex("\\s+")).filter { it.isNotBlank() }
                         val wordDurationSec = 0.18
@@ -251,9 +287,9 @@ internal fun LyricsLine(
                             )
                         }
                     }
-                } else null
+                }
 
-                if (isSynced && effectiveWords != null && (isActiveLine || abs(index - displayedCurrentLineIndex) <= 3) && mainText != null) {
+                if (isSynced && (isActiveLine || abs(index - displayedCurrentLineIndex) <= 3)) {
                     WordLevelLyrics(
                         mainText = mainText,
                         words = effectiveWords,
@@ -270,7 +306,7 @@ internal fun LyricsLine(
                     )
                 } else {
                     Text(
-                        text = mainText ?: "",
+                        text = mainText,
                         style = lyricStyle.copy(color = if (isActiveLine) expressiveAccent else lineColor),
                         modifier = Modifier.fillMaxWidth()
                     )

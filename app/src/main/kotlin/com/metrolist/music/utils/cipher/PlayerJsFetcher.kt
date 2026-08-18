@@ -22,6 +22,9 @@ object PlayerJsFetcher {
 
     private val httpClient = OkHttpClient.Builder()
         .proxy(YouTube.proxy)
+        .dns(com.metrolist.innertube.PreferIPv4Dns)
+        .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
         .build()
 
     // Regex to extract player hash from iframe_api response

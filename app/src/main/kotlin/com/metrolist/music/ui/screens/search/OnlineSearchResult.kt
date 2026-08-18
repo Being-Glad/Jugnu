@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -96,14 +96,20 @@ import com.metrolist.music.extensions.toMediaItem
 import com.metrolist.music.models.toMediaMetadata
 import com.metrolist.music.playback.queues.ListQueue
 import com.metrolist.music.playback.queues.YouTubeQueue
+import com.metrolist.music.ui.component.AlbumListItem
+import com.metrolist.music.ui.component.ArtistListItem
 import com.metrolist.music.ui.component.ChipsRow
 import com.metrolist.music.ui.component.EmptyPlaceholder
 import com.metrolist.music.ui.component.HideOnScrollFAB
 import com.metrolist.music.ui.component.LocalMenuState
 import com.metrolist.music.ui.component.NavigationTitle
+import com.metrolist.music.ui.component.SongListItem
 import com.metrolist.music.ui.component.YouTubeListItem
 import com.metrolist.music.ui.component.shimmer.ListItemPlaceHolder
 import com.metrolist.music.ui.component.shimmer.ShimmerHost
+import com.metrolist.music.ui.menu.AlbumMenu
+import com.metrolist.music.ui.menu.ArtistMenu
+import com.metrolist.music.ui.menu.SongMenu
 import com.metrolist.music.ui.menu.YouTubeAlbumMenu
 import com.metrolist.music.ui.menu.YouTubeArtistMenu
 import com.metrolist.music.ui.menu.YouTubePlaylistMenu
@@ -124,11 +130,16 @@ fun OnlineSearchResult(
 ) {
     val navController = LocalNavController.current
     val database = LocalDatabase.current
+    val haptic = LocalHapticFeedback.current
     val menuState = LocalMenuState.current
     val playerConnection = LocalPlayerConnection.current ?: return
-    val haptic = LocalHapticFeedback.current
+
     val isPlaying by playerConnection.isEffectivelyPlaying.collectAsStateWithLifecycle()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsStateWithLifecycle()
+
+    val localSongs by viewModel.localSongs.collectAsStateWithLifecycle(emptyList())
+    val localAlbums by viewModel.localAlbums.collectAsStateWithLifecycle(emptyList())
+    val localArtists by viewModel.localArtists.collectAsStateWithLifecycle(emptyList())
 
     val coroutineScope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
@@ -511,7 +522,158 @@ fun OnlineSearchResult(
                             )
                         }
 
-                        if (searchSummary?.summaries?.isEmpty() == true) {
+                        if (localSongs.isNotEmpty() || localAlbums.isNotEmpty() || localArtists.isNotEmpty()) {
+                            item(key = "from_your_library_title") {
+                                NavigationTitle(stringResource(R.string.from_your_library))
+                            }
+
+                            items(
+                                items = localSongs,
+                                key = { "local_song_${it.id}" },
+                            ) { song ->
+                                SongListItem(
+                                    song = song,
+                                    showInLibraryIcon = true,
+                                    isActive = song.id == mediaMetadata?.id,
+                                    isPlaying = isPlaying,
+                                    trailingContent = {
+                                        IconButton(
+                                            onClick = {
+                                                menuState.show {
+                                                    SongMenu(
+                                                        originalSong = song,
+                                                        onDismiss = menuState::dismiss,
+                                                    )
+                                                }
+                                            },
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.more_vert),
+                                                contentDescription = null,
+                                            )
+                                        }
+                                    },
+                                    modifier =
+                                        Modifier
+                                            .combinedClickable(
+                                                onClick = {
+                                                    if (song.id == mediaMetadata?.id) {
+                                                        playerConnection.togglePlayPause()
+                                                    } else {
+                                                        playerConnection.playQueue(
+                                                            ListQueue(
+                                                                title = song.song.title,
+                                                                items = listOf(song.toMediaItem()),
+                                                            ),
+                                                        )
+                                                    }
+                                                },
+                                                onLongClick = {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    menuState.show {
+                                                        SongMenu(
+                                                            originalSong = song,
+                                                            onDismiss = menuState::dismiss,
+                                                        )
+                                                    }
+                                                },
+                                            )
+                                            .animateItem(),
+                                )
+                            }
+
+                            items(
+                                items = localAlbums,
+                                key = { "local_album_${it.id}" },
+                            ) { album ->
+                                AlbumListItem(
+                                    album = album,
+                                    isActive = album.id == mediaMetadata?.album?.id,
+                                    isPlaying = isPlaying,
+                                    trailingContent = {
+                                        IconButton(
+                                            onClick = {
+                                                menuState.show {
+                                                    AlbumMenu(
+                                                        originalAlbum = album,
+                                                        onDismiss = menuState::dismiss,
+                                                    )
+                                                }
+                                            },
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.more_vert),
+                                                contentDescription = null,
+                                            )
+                                        }
+                                    },
+                                    modifier =
+                                        Modifier
+                                            .combinedClickable(
+                                                onClick = {
+                                                    navController.navigate("album/${album.id}")
+                                                },
+                                                onLongClick = {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    menuState.show {
+                                                        AlbumMenu(
+                                                            originalAlbum = album,
+                                                            onDismiss = menuState::dismiss,
+                                                        )
+                                                    }
+                                                },
+                                            )
+                                            .animateItem(),
+                                )
+                            }
+
+                            items(
+                                items = localArtists,
+                                key = { "local_artist_${it.id}" },
+                            ) { artist ->
+                                ArtistListItem(
+                                    artist = artist,
+                                    trailingContent = {
+                                        IconButton(
+                                            onClick = {
+                                                menuState.show {
+                                                    ArtistMenu(
+                                                        originalArtist = artist,
+                                                        coroutineScope = coroutineScope,
+                                                        onDismiss = menuState::dismiss,
+                                                    )
+                                                }
+                                            },
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.more_vert),
+                                                contentDescription = null,
+                                            )
+                                        }
+                                    },
+                                    modifier =
+                                        Modifier
+                                            .combinedClickable(
+                                                onClick = {
+                                                    navController.navigate("artist/${artist.id}")
+                                                },
+                                                onLongClick = {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    menuState.show {
+                                                        ArtistMenu(
+                                                            originalArtist = artist,
+                                                            coroutineScope = coroutineScope,
+                                                            onDismiss = menuState::dismiss,
+                                                        )
+                                                    }
+                                                },
+                                            )
+                                            .animateItem(),
+                                )
+                            }
+                        }
+
+                        if (searchSummary?.summaries?.isEmpty() == true && localSongs.isEmpty() && localAlbums.isEmpty() && localArtists.isEmpty()) {
                             item {
                                 EmptyPlaceholder(
                                     icon = R.drawable.search,

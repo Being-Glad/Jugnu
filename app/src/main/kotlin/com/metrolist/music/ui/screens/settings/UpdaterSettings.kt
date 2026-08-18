@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -46,6 +46,11 @@ import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.utils.Updater
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.ui.text.style.TextAlign
 import com.metrolist.music.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -69,6 +74,50 @@ fun UpdaterScreen(
     val failedToCheckUpdatesTemplate = stringResource(R.string.failed_to_check_updates)
 
     val coroutineScope = rememberCoroutineScope()
+
+    var isDownloading by remember { mutableStateOf(false) }
+    var downloadProgress by remember { mutableStateOf(0f) }
+    var downloadError by remember { mutableStateOf<String?>(null) }
+    var isInstalling by remember { mutableStateOf(false) }
+    var installPermissionGranted by remember { mutableStateOf(Updater.canRequestPackageInstalls(context)) }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                installPermissionGranted = Updater.canRequestPackageInstalls(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    fun startDownloadAndInstall() {
+        val releaseInfo = Updater.getCachedLatestRelease() ?: return
+        val downloadUrl = Updater.getDownloadUrlForCurrentVariant(releaseInfo) ?: return
+
+        coroutineScope.launch {
+            isDownloading = true
+            downloadError = null
+            downloadProgress = 0f
+            
+            Updater.downloadApk(context, downloadUrl) { progress ->
+                downloadProgress = progress
+            }.onSuccess { apkFile ->
+                isDownloading = false
+                isInstalling = true
+                Updater.installApk(context, apkFile).onFailure {
+                    isInstalling = false
+                    downloadError = it.message ?: "Installation failed"
+                }
+            }.onFailure {
+                isDownloading = false
+                downloadError = it.message ?: "Download failed"
+            }
+        }
+    }
 
     fun performManualCheck() {
         coroutineScope.launch {
@@ -215,6 +264,63 @@ fun UpdaterScreen(
         }
 
         if (updateAvailable && latestVersion != null) {
+            Spacer(Modifier.height(16.dp))
+
+            if (isDownloading) {
+                androidx.compose.material3.LinearProgressIndicator(
+                    progress = { downloadProgress },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.downloading_update_format, (downloadProgress * 100).toInt()),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            } else if (isInstalling) {
+                CircularProgressIndicator()
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.installing_update),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            } else {
+                if (!installPermissionGranted) {
+                    Button(
+                        onClick = { Updater.launchManageUnknownAppSourcesIntent(context) },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    ) {
+                        Text(stringResource(R.string.grant_install_permission_button))
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.grant_install_permission_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 24.dp),
+                        textAlign = TextAlign.Center
+                    )
+                } else {
+                    Button(
+                        onClick = { startDownloadAndInstall() },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    ) {
+                        Text(stringResource(R.string.download_and_install_update))
+                    }
+                }
+            }
+
+            downloadError?.let {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.download_failed, it),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+
             Spacer(Modifier.height(16.dp))
             Button(
                 onClick = { showChangelog = !showChangelog },

@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -25,7 +25,7 @@ import kotlin.random.Random
 fun TextPlaceholder(
     modifier: Modifier = Modifier,
     height: Dp = 16.dp,
-    shape: CornerBasedShape = RoundedCornerShape(0.dp)
+    shape: CornerBasedShape = RoundedCornerShape(8.dp)
 ) {
     Box(
         modifier = modifier
@@ -33,6 +33,6 @@ fun TextPlaceholder(
             .height(height)
             .fillMaxWidth(remember { 0.25f + Random.nextFloat() * 0.5f })
             .clip(shape)
-            .background(MaterialTheme.colorScheme.onSurface)
+            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.08f))
     )
 }

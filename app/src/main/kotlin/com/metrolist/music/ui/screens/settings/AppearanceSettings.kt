@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -31,12 +31,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -92,6 +98,7 @@ import com.metrolist.music.constants.ShowCachedPlaylistKey
 import com.metrolist.music.constants.ShowDownloadedPlaylistKey
 import com.metrolist.music.constants.ShowLikedPlaylistKey
 import com.metrolist.music.constants.ShowTopPlaylistKey
+import com.metrolist.music.constants.ShowTrendingArtistsKey
 import com.metrolist.music.constants.ShowUploadedPlaylistKey
 import com.metrolist.music.constants.SliderStyle
 import com.metrolist.music.constants.SliderStyleKey
@@ -152,24 +159,24 @@ fun AppearanceSettings(
     val isUsingCustomColor = selectedThemeColorInt != DefaultThemeColor.toArgb()
     val coroutineScope = rememberCoroutineScope()
 
-    fun handleIconChange(enabled: Boolean) {
+    var showIconDialog by remember { mutableStateOf(false) }
+    var tempSelectedIsJugnu by remember { mutableStateOf(enableDynamicIcon) }
+
+    LaunchedEffect(showIconDialog) {
+        if (showIconDialog) {
+            tempSelectedIsJugnu = enableDynamicIcon
+        }
+    }
+
+    fun handleIconChangeAndRestart(enabled: Boolean) {
         onEnableDynamicIconChange(enabled)
         IconUtils.setIcon(activity, enabled)
-        coroutineScope.launch {
-            val result =
-                snackbarHostState.showSnackbar(
-                    message = "Icon updated, restart to apply",
-                    actionLabel = "Restart",
-                )
-            if (result == SnackbarResult.ActionPerformed) {
-                val packageManager = activity.packageManager
-                val intent = packageManager.getLaunchIntentForPackage(activity.packageName)
-                val componentName = intent?.component
-                val mainIntent = Intent.makeRestartActivityTask(componentName)
-                activity.startActivity(mainIntent)
-                Runtime.getRuntime().exit(0)
-            }
-        }
+        val packageManager = activity.packageManager
+        val intent = packageManager.getLaunchIntentForPackage(activity.packageName)
+        val componentName = intent?.component
+        val mainIntent = Intent.makeRestartActivityTask(componentName)
+        activity.startActivity(mainIntent)
+        Runtime.getRuntime().exit(0)
     }
 
     val (useNewPlayerDesign, onUseNewPlayerDesignChange) =
@@ -288,7 +295,7 @@ fun AppearanceSettings(
 
     // Density scale preferences
     val context = activity as Context
-    val sharedPreferences = remember { context.getSharedPreferences("metrolist_settings", Context.MODE_PRIVATE) }
+    val sharedPreferences = remember { context.getSharedPreferences("jugnu_settings", Context.MODE_PRIVATE) }
     val prefDensityScale =
         remember(sharedPreferences) {
             sharedPreferences.getFloat("density_scale_factor", 1.0f)
@@ -348,6 +355,11 @@ fun AppearanceSettings(
         rememberPreference(
             ShowUploadedPlaylistKey,
             defaultValue = true,
+        )
+    val (showTrendingArtists, onShowTrendingArtistsChange) =
+        rememberPreference(
+            ShowTrendingArtistsKey,
+            defaultValue = false,
         )
 
     val availableBackgroundStyles =
@@ -605,6 +617,88 @@ fun AppearanceSettings(
                     MiniPlayerBackgroundStyle.PURE_BLACK -> stringResource(R.string.pure_black)
                 }
             },
+        )
+    }
+
+    if (showIconDialog) {
+        AlertDialog(
+            onDismissRequest = { showIconDialog = false },
+            title = { Text("App Icon & Name") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        text = "Choose your launcher icon and app name. Applying changes will restart the app to update the home screen.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    // Jugnu Option
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { tempSelectedIsJugnu = true }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Image(
+                            painter = painterResource(R.drawable.app_logo),
+                            contentDescription = "Jugnu",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                        )
+                        Spacer(Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Jugnu", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Text("Wings icon & custom name", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        RadioButton(
+                            selected = tempSelectedIsJugnu,
+                            onClick = { tempSelectedIsJugnu = true }
+                        )
+                    }
+
+                    // YT Music Option
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { tempSelectedIsJugnu = false }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Image(
+                            painter = painterResource(R.drawable.youtube_music_logo),
+                            contentDescription = "YT Music",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                        )
+                        Spacer(Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("YT Music", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Text("Official logo & name", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        RadioButton(
+                            selected = !tempSelectedIsJugnu,
+                            onClick = { tempSelectedIsJugnu = false }
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showIconDialog = false
+                        handleIconChangeAndRestart(tempSelectedIsJugnu)
+                    }
+                ) {
+                    Text("Apply & Restart")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showIconDialog = false }) {
+                    Text("Cancel")
+                }
+            }
         )
     }
 
@@ -978,24 +1072,13 @@ fun AppearanceSettings(
                     add(
                         Material3SettingsItem(
                             icon = painterResource(R.drawable.ic_dynamic_icon),
-                            title = { Text(stringResource(R.string.enable_dynamic_icon)) },
-                            trailingContent = {
-                                Switch(
-                                    checked = enableDynamicIcon,
-                                    onCheckedChange = { handleIconChange(it) },
-                                    thumbContent = {
-                                        Icon(
-                                            painter =
-                                                painterResource(
-                                                    id = if (enableDynamicIcon) R.drawable.check else R.drawable.close,
-                                                ),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(SwitchDefaults.IconSize),
-                                        )
-                                    },
+                            title = { Text("App Icon & Name") },
+                            description = {
+                                Text(
+                                    if (enableDynamicIcon) "Current: Jugnu (Custom)" else "Current: YT Music (Official)"
                                 )
                             },
-                            onClick = { handleIconChange(!enableDynamicIcon) },
+                            onClick = { showIconDialog = true },
                         ),
                     )
                     add(
@@ -1652,6 +1735,28 @@ fun AppearanceSettings(
                             )
                         },
                         onClick = { onSwipeToSongChange(!swipeToSong) },
+                    ),
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.artist),
+                        title = { Text("Show Trending Artists") },
+                        description = { Text("Show trending artists carousel on Home screen") },
+                        trailingContent = {
+                            Switch(
+                                checked = showTrendingArtists,
+                                onCheckedChange = onShowTrendingArtistsChange,
+                                thumbContent = {
+                                    Icon(
+                                        painter =
+                                            painterResource(
+                                                id = if (showTrendingArtists) R.drawable.check else R.drawable.close,
+                                            ),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(SwitchDefaults.IconSize),
+                                    )
+                                },
+                            )
+                        },
+                        onClick = { onShowTrendingArtistsChange(!showTrendingArtists) },
                     ),
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.swipe),

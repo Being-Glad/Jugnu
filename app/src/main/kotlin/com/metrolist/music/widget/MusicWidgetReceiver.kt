@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -80,10 +80,10 @@ class MusicWidgetReceiver : AppWidgetProvider() {
     }
 
     companion object {
-        const val ACTION_PLAY_PAUSE = "com.metrolist.music.widget.PLAY_PAUSE"
-        const val ACTION_LIKE = "com.metrolist.music.widget.LIKE"
-        const val ACTION_NEXT = "com.metrolist.music.widget.NEXT"
-        const val ACTION_PREVIOUS = "com.metrolist.music.widget.PREVIOUS"
-        const val ACTION_UPDATE_WIDGET = "com.metrolist.music.widget.UPDATE_WIDGET"
+        const val ACTION_PLAY_PAUSE = "com.jugnu.music.widget.PLAY_PAUSE"
+        const val ACTION_LIKE = "com.jugnu.music.widget.LIKE"
+        const val ACTION_NEXT = "com.jugnu.music.widget.NEXT"
+        const val ACTION_PREVIOUS = "com.jugnu.music.widget.PREVIOUS"
+        const val ACTION_UPDATE_WIDGET = "com.jugnu.music.widget.UPDATE_WIDGET"
     }
 }

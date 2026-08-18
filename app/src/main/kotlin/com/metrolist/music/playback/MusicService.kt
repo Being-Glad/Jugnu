@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -202,7 +202,7 @@ import com.metrolist.music.utils.YTPlayerUtils
 import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.get
 import com.metrolist.music.utils.reportException
-import com.metrolist.music.widget.MetrolistWidgetManager
+import com.metrolist.music.widget.JugnuWidgetManager
 import com.metrolist.music.widget.MusicWidgetReceiver
 import com.metrolist.music.widget.PlaylistWidgetReceiver
 import com.metrolist.music.ui.utils.resize
@@ -272,7 +272,7 @@ class MusicService :
     lateinit var eqProfileRepository: EQProfileRepository
 
     @Inject
-    lateinit var widgetManager: MetrolistWidgetManager
+    lateinit var widgetManager: JugnuWidgetManager
 
     @Inject
     lateinit var listenTogetherManager: com.metrolist.music.listentogether.ListenTogetherManager
@@ -3241,6 +3241,9 @@ class MusicService :
                             OkHttpDataSource.Factory(
                                 OkHttpClient
                                     .Builder()
+                                    .dns(com.metrolist.innertube.PreferIPv4Dns)
+                                    .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                                    .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
                                     .proxy(YouTube.proxy)
                                     .proxyAuthenticator { _, response ->
                                         YouTube.proxyAuth?.let { auth ->
@@ -3571,6 +3574,29 @@ class MusicService :
 
                 nonNullPlayback.playbackTracking?.videostatsPlaybackUrl?.baseUrl?.let {
                     playbackUrlCache[cacheKey(mediaId)] = it
+                }
+
+                // Pre-resolve next track stream URL in background for gapless playback
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        val nextIndex = player.currentMediaItemIndex + 1
+                        if (nextIndex < player.mediaItemCount) {
+                            val nextMediaItem = player.getMediaItemAt(nextIndex)
+                            val nextMediaId = nextMediaItem.mediaId
+                            val cached = songUrlCache[nextMediaId]
+                            if (nextMediaId.isNotEmpty() && (cached == null || cached.second <= System.currentTimeMillis())) {
+                                val nextPlayback = YTPlayerUtils.playerResponseForPlayback(
+                                    nextMediaId,
+                                    audioQuality = audioQuality,
+                                    connectivityManager = connectivityManager,
+                                ).getOrNull()
+                                if (nextPlayback != null) {
+                                    songUrlCache[nextMediaId] = nextPlayback.streamUrl to (System.currentTimeMillis() + (nextPlayback.streamExpiresInSeconds * 1000L))
+                                }
+                            }
+                        }
+                    } catch (_: Exception) {
+                    }
                 }
 
                 return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, CHUNK_LENGTH)
@@ -4534,7 +4560,7 @@ class MusicService :
     }
 
     companion object {
-        const val ACTION_ALARM_TRIGGER = "com.metrolist.music.action.ALARM_TRIGGER"
+        const val ACTION_ALARM_TRIGGER = "com.jugnu.music.action.ALARM_TRIGGER"
         const val EXTRA_ALARM_ID = "extra_alarm_id"
         const val EXTRA_ALARM_PLAYLIST_ID = "extra_alarm_playlist_id"
         const val EXTRA_ALARM_RANDOM_SONG = "extra_alarm_random_song"

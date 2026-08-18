@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -127,74 +126,26 @@ fun LastFMSettings(
         var tempUsername by rememberSaveable { mutableStateOf("") }
         var tempPassword by rememberSaveable { mutableStateOf("") }
 
-        AlertDialog(
-            properties = DialogProperties(usePlatformDefaultWidth = false),
-            onDismissRequest = {
+        DefaultDialog(
+            onDismiss = {
                 if (!isLoggingIn) {
                     showLoginDialog = false
                     loginError = null
                 }
             },
             title = { Text(stringResource(R.string.login)) },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedTextField(
-                        value = tempUsername,
-                        onValueChange = {
-                            tempUsername = it
+            buttons = {
+                TextButton(
+                    onClick = {
+                        if (!isLoggingIn) {
+                            showLoginDialog = false
                             loginError = null
-                        },
-                        label = { Text(stringResource(R.string.username)) },
-                        singleLine = true,
-                        enabled = !isLoggingIn,
-                    )
-                    OutlinedTextField(
-                        value = tempPassword,
-                        onValueChange = {
-                            tempPassword = it
-                            loginError = null
-                        },
-                        label = { Text(stringResource(R.string.password)) },
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        enabled = !isLoggingIn,
-                    )
-
-                    // Show error message if login failed
-                    loginError?.let { error ->
-                        Text(
-                            text = error,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                    }
-
-                    // Show loading indicator
-                    if (isLoggingIn) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.size(8.dp))
-                            Text(
-                                text = stringResource(R.string.logging_in),
-                                style = MaterialTheme.typography.bodySmall
-                            )
                         }
-                    }
+                    },
+                    enabled = !isLoggingIn
+                ) {
+                    Text(stringResource(R.string.cancel))
                 }
-            },
-            confirmButton = {
                 TextButton(
                     onClick = {
                         if (tempUsername.isBlank() || tempPassword.isBlank()) {
@@ -254,21 +205,66 @@ fun LastFMSettings(
                 ) {
                     Text(stringResource(R.string.login))
                 }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        if (!isLoggingIn) {
-                            showLoginDialog = false
-                            loginError = null
-                        }
+            }
+        ) {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = tempUsername,
+                    onValueChange = {
+                        tempUsername = it
+                        loginError = null
                     },
-                    enabled = !isLoggingIn
-                ) {
-                    Text(stringResource(R.string.cancel))
+                    label = { Text(stringResource(R.string.username)) },
+                    singleLine = true,
+                    enabled = !isLoggingIn,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                OutlinedTextField(
+                    value = tempPassword,
+                    onValueChange = {
+                        tempPassword = it
+                        loginError = null
+                    },
+                    label = { Text(stringResource(R.string.password)) },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    enabled = !isLoggingIn,
+                )
+
+                // Show error message if login failed
+                loginError?.let { error ->
+                    Text(
+                        text = error,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+
+                // Show loading indicator
+                if (isLoggingIn) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(
+                            text = stringResource(R.string.logging_in),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
             }
-        )
+        }
     }
 
     Column(

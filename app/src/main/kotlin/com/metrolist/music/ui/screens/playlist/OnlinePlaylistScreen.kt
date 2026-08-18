@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -29,7 +29,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ContainedLoadingIndicator
+import com.metrolist.music.ui.component.MetrolistContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -42,6 +42,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -137,6 +139,7 @@ fun OnlinePlaylistScreen(
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
 
     val lazyListState = rememberLazyListState()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val snackbarHostState = remember { SnackbarHostState() }
 
     var isSearching by rememberSaveable { mutableStateOf(false) }
@@ -194,6 +197,7 @@ fun OnlinePlaylistScreen(
         LazyColumn(
             state = lazyListState,
             contentPadding = LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues(),
+            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         ) {
             if (playlist == null || songs.isEmpty()) {
                 if (isLoading) {
@@ -205,7 +209,7 @@ fun OnlinePlaylistScreen(
                                     .padding(32.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            ContainedLoadingIndicator()
+                            MetrolistContainedLoadingIndicator()
                         }
                     }
                 } else if (error != null) {
@@ -351,7 +355,7 @@ fun OnlinePlaylistScreen(
                                         .padding(16.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                ContainedLoadingIndicator()
+                                MetrolistContainedLoadingIndicator()
                             }
                         }
                     }
@@ -360,6 +364,11 @@ fun OnlinePlaylistScreen(
         }
 
         TopAppBar(
+            scrollBehavior = scrollBehavior,
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = Color.Transparent,
+                scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.9f),
+            ),
             title = {
                 if (inSelectMode) {
                     Text(
@@ -512,10 +521,10 @@ private fun OnlinePlaylistHeader(
                     .size(240.dp)
                     .shadow(
                         elevation = 24.dp,
-                        shape = RoundedCornerShape(3.dp),
+                        shape = RoundedCornerShape(12.dp),
                         spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
                     ),
-            shape = RoundedCornerShape(3.dp),
+            shape = RoundedCornerShape(12.dp),
         ) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current).data(playlist.thumbnail?.resize(1080, 1080)).build(),

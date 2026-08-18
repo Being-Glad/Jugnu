@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  * 
  * Optimized for minimal recomposition during navigation
@@ -16,6 +16,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import com.metrolist.music.ui.utils.neonGlow
+import com.metrolist.music.ui.utils.scrollEntrance
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
@@ -88,7 +91,13 @@ import androidx.media3.exoplayer.offline.Download.STATE_COMPLETED
 import androidx.media3.exoplayer.offline.Download.STATE_DOWNLOADING
 import androidx.media3.exoplayer.offline.Download.STATE_QUEUED
 import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
 import coil3.request.ImageRequest
+import coil3.request.crossfade
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.graphics.Brush
+import com.valentinilk.shimmer.shimmer
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.AlbumItem
 import com.metrolist.innertube.models.ArtistItem
@@ -145,7 +154,33 @@ fun ClickableArtistText(
     style: TextStyle = MaterialTheme.typography.bodySmall,
     maxLines: Int = 1,
     overflow: TextOverflow = TextOverflow.Ellipsis,
+    clickable: Boolean = true,
 ) {
+    if (!clickable) {
+        val andString = stringResource(R.string.and)
+        val text = remember(artists, andString) {
+            buildString {
+                artists.forEachIndexed { index, artist ->
+                    append(artist.name)
+                    if (index != artists.lastIndex) {
+                        if (index == artists.lastIndex - 1) {
+                            append(" $andString ")
+                        } else {
+                            append(", ")
+                        }
+                    }
+                }
+            }
+        }
+        Text(
+            text = text,
+            style = style,
+            maxLines = maxLines,
+            overflow = overflow,
+            modifier = modifier,
+        )
+        return
+    }
     val navController = LocalNavController.current
     val andString = stringResource(R.string.and)
     val linkColor = LocalContentColor.current
@@ -189,8 +224,35 @@ fun ClickableArtistText(
     style: TextStyle = MaterialTheme.typography.bodySmall,
     maxLines: Int = 1,
     overflow: TextOverflow = TextOverflow.Ellipsis,
-    color: Color = LocalContentColor.current
+    color: Color = LocalContentColor.current,
+    clickable: Boolean = true,
 ) {
+    if (!clickable) {
+        val andString = stringResource(R.string.and)
+        val text = remember(artists, andString) {
+            buildString {
+                artists.forEachIndexed { index, artist ->
+                    append(artist.name)
+                    if (index != artists.lastIndex) {
+                        if (index == artists.lastIndex - 1) {
+                            append(" $andString ")
+                        } else {
+                            append(", ")
+                        }
+                    }
+                }
+            }
+        }
+        Text(
+            text = text,
+            style = style,
+            maxLines = maxLines,
+            overflow = overflow,
+            modifier = modifier,
+            color = color,
+        )
+        return
+    }
     val navController = LocalNavController.current
     val andString = stringResource(R.string.and)
     val annotatedString = remember(artists, andString, color) {
@@ -238,7 +300,33 @@ fun ClickableArtistText(
     style: TextStyle = MaterialTheme.typography.bodySmall,
     maxLines: Int = 1,
     overflow: TextOverflow = TextOverflow.Ellipsis,
+    clickable: Boolean = true,
 ) {
+    if (!clickable) {
+        val andString = stringResource(R.string.and)
+        val text = remember(artists, andString) {
+            buildString {
+                artists.forEachIndexed { index, artist ->
+                    append(artist.name)
+                    if (index != artists.lastIndex) {
+                        if (index == artists.lastIndex - 1) {
+                            append(" $andString ")
+                        } else {
+                            append(", ")
+                        }
+                    }
+                }
+            }
+        }
+        Text(
+            text = text,
+            style = style,
+            maxLines = maxLines,
+            overflow = overflow,
+            modifier = modifier,
+        )
+        return
+    }
     val navController = LocalNavController.current
     val andString = stringResource(R.string.and)
     val linkColor = LocalContentColor.current
@@ -299,7 +387,7 @@ inline fun ListItem(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = if (isActive) {
+        modifier = (if (isActive) {
             modifier // playing highlight
                 .height(ListItemHeight)
                 .padding(horizontal = 8.dp)
@@ -319,7 +407,7 @@ inline fun ListItem(
             modifier // default
                 .height(ListItemHeight)
                 .padding(horizontal = 8.dp)
-        }
+        }).scrollEntrance()
     ) {
         Box(
             modifier = Modifier.padding(6.dp),
@@ -448,7 +536,7 @@ fun GridItem(
 ) {
     val gridHeight = currentGridThumbnailHeight()
     Column(
-        modifier = if (fillMaxWidth) {
+        modifier = (if (fillMaxWidth) {
             modifier
                 .padding(12.dp)
                 .fillMaxWidth()
@@ -456,7 +544,7 @@ fun GridItem(
             modifier
                 .padding(12.dp)
                 .width(gridHeight * thumbnailRatio)
-        }
+        }).scrollEntrance()
     ) {
         BoxWithConstraints(
             contentAlignment = Alignment.Center,
@@ -560,7 +648,8 @@ fun SongListItem(
                     ClickableArtistText(
                         artists = song.orderedArtists,
                         style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.secondary),
-                        modifier = Modifier.weight(1f, fill = false)
+                        modifier = Modifier.weight(1f, fill = false),
+                        clickable = false
                     )
                     val durationText = makeTimeString(song.song.duration * 1000L)
                     if (durationText.isNotEmpty()) {
@@ -590,7 +679,8 @@ fun SongListItem(
                      isActive = isActive,
                      isPlaying = isPlaying,
                      shape = RoundedCornerShape(ThumbnailCornerRadius),
-                     modifier = Modifier.size(ListThumbnailSize)
+                     modifier = Modifier.size(ListThumbnailSize),
+                     isSmall = true
                  )
              },
              trailingContent = trailingContent,
@@ -655,7 +745,8 @@ fun SongGridItem(
                 style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.secondary),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false)
+                modifier = Modifier.weight(1f, fill = false),
+                clickable = false
             )
             val durationText = makeTimeString(song.song.duration * 1000L)
             if (durationText.isNotEmpty()) {
@@ -810,7 +901,8 @@ fun AlbumListItem(
         ClickableArtistText(
             artists = album.artists,
             style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.secondary),
-            modifier = Modifier.weight(1f, fill = false)
+            modifier = Modifier.weight(1f, fill = false),
+            clickable = false
         )
         Text(
             text = " • ${pluralStringResource(R.plurals.n_song, album.album.songCount, album.album.songCount)}${album.album.year?.let { " • $it" } ?: ""}",
@@ -826,7 +918,8 @@ fun AlbumListItem(
             isActive = isActive,
             isPlaying = isPlaying,
             shape = RoundedCornerShape(ThumbnailCornerRadius),
-            modifier = Modifier.size(ListThumbnailSize)
+            modifier = Modifier.size(ListThumbnailSize),
+            isSmall = true
         )
     },
     trailingContent = trailingContent,
@@ -892,7 +985,8 @@ fun AlbumGridItem(
              style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.secondary),
              maxLines = 2,
              overflow = TextOverflow.Ellipsis,
-             modifier = Modifier.weight(1f, fill = false)
+             modifier = Modifier.weight(1f, fill = false),
+             clickable = false
          )
      },
     badges = badges,
@@ -989,8 +1083,9 @@ fun PlaylistListItem(
                     stringResource(R.string.liked) -> R.drawable.favorite_border
                     stringResource(R.string.offline) -> R.drawable.offline
                     stringResource(R.string.cached_playlist) -> R.drawable.cached
-                    // R.drawable.backup as placeholder
                     stringResource(R.string.uploaded_playlist) -> R.drawable.backup
+                    stringResource(R.string.history) -> R.drawable.history
+                    stringResource(R.string.stats) -> R.drawable.stats
                     else -> if (autoPlaylist) R.drawable.trending_up else R.drawable.queue_music
                 }
                 Icon(
@@ -1089,8 +1184,9 @@ fun PlaylistGridItem(
                     stringResource(R.string.liked) -> R.drawable.favorite_border
                     stringResource(R.string.offline) -> R.drawable.offline
                     stringResource(R.string.cached_playlist) -> R.drawable.cached
-                    // R.drawable.backup as placeholder
                     stringResource(R.string.uploaded_playlist) -> R.drawable.backup
+                    stringResource(R.string.history) -> R.drawable.history
+                    stringResource(R.string.stats) -> R.drawable.stats
                     else -> if (autoPlaylist) R.drawable.trending_up else R.drawable.queue_music
                 }
                 Box(
@@ -1167,7 +1263,8 @@ fun MediaMetadataListItem(
                 isActive = isActive,
                 isPlaying = isPlaying,
                 shape = RoundedCornerShape(ThumbnailCornerRadius),
-                modifier = Modifier.size(ListThumbnailSize)
+                modifier = Modifier.size(ListThumbnailSize),
+                isSmall = true
             )
         },
         trailingContent = trailingContent,
@@ -1231,7 +1328,8 @@ fun YouTubeListItem(
                         artists = artists,
                         style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.secondary),
                         color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.weight(1f, fill = false)
+                        modifier = Modifier.weight(1f, fill = false),
+                        clickable = false
                     )
                 }
 
@@ -1266,7 +1364,8 @@ fun YouTubeListItem(
                     isActive = isActive,
                     isPlaying = isPlaying,
                     shape = if (item is ArtistItem) CircleShape else RoundedCornerShape(ThumbnailCornerRadius),
-                    modifier = Modifier.size(ListThumbnailSize)
+                    modifier = Modifier.size(ListThumbnailSize),
+                    isSmall = true
                 )
             },
             trailingContent = trailingContent,
@@ -1546,9 +1645,20 @@ fun ItemThumbnail(
     modifier: Modifier = Modifier,
     albumIndex: Int? = null,
     isSelected: Boolean = false,
-    thumbnailRatio: Float = 1f
+    thumbnailRatio: Float = 1f,
+    isSmall: Boolean = false
 ) {
     val cropAlbumArt by rememberPreference(CropAlbumArtKey, false)
+    val dynamicPrimary = MaterialTheme.colorScheme.primary
+    val borderModifier = if (isActive) {
+        Modifier.neonGlow(shape = shape, glowColor = dynamicPrimary)
+    } else {
+        Modifier.border(
+            width = 1.dp,
+            color = Color.White.copy(alpha = 0.08f),
+            shape = shape
+        )
+    }
     
     Box(
         contentAlignment = Alignment.Center,
@@ -1556,21 +1666,59 @@ fun ItemThumbnail(
             .fillMaxSize()
             .aspectRatio(thumbnailRatio)
             .clip(shape)
+            .then(borderModifier)
     ) {
         if (albumIndex == null) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(thumbnailUrl?.resize(544, 544))
-                    .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
-                    .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
-                    .networkCachePolicy(coil3.request.CachePolicy.ENABLED)
-                    .build(),
-                contentDescription = null,
-                contentScale = if (cropAlbumArt) ContentScale.Crop else ContentScale.Fit,
+            var imageState by remember { mutableStateOf<AsyncImagePainter.State>(AsyncImagePainter.State.Empty) }
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize()
                     .clip(shape)
-            )
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(thumbnailUrl?.resize(if (isSmall) 144 else 360, if (isSmall) 144 else 360))
+                        .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
+                        .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
+                        .networkCachePolicy(coil3.request.CachePolicy.ENABLED)
+                        .crossfade(true)
+                        .build(),
+                    onState = { imageState = it },
+                    contentDescription = null,
+                    contentScale = if (cropAlbumArt) ContentScale.Crop else ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                if (imageState is AsyncImagePainter.State.Loading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .shimmer()
+                    )
+                } else if (imageState is AsyncImagePainter.State.Error) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                                        MaterialTheme.colorScheme.surfaceContainer
+                                    )
+                                )
+                            )
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.music_note),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                            modifier = Modifier.size(if (isSmall) 16.dp else 24.dp)
+                        )
+                    }
+                }
+            }
         }
 
         if (albumIndex != null) {
@@ -1638,17 +1786,50 @@ fun LocalThumbnail(
             .aspectRatio(thumbnailRatio)
             .clip(shape)
     ) {
+        var imageState by remember { mutableStateOf<AsyncImagePainter.State>(AsyncImagePainter.State.Empty) }
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(thumbnailUrl)
                 .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
                 .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
                 .networkCachePolicy(coil3.request.CachePolicy.ENABLED)
+                .crossfade(true)
                 .build(),
+            onState = { imageState = it },
             contentDescription = null,
             contentScale = if (cropAlbumArt) ContentScale.Crop else ContentScale.Fit,
             modifier = Modifier.fillMaxSize()
         )
+
+        if (imageState is AsyncImagePainter.State.Loading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .shimmer()
+            )
+        } else if (imageState is AsyncImagePainter.State.Error) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                                MaterialTheme.colorScheme.surfaceContainer
+                            )
+                        )
+                    )
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.music_note),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
 
         AnimatedVisibility(
             visible = isActive,

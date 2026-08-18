@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -9,6 +9,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,16 +27,18 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -49,10 +52,12 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.metrolist.music.LocalNavController
 import com.metrolist.innertube.models.AlbumItem
 import com.metrolist.innertube.models.ArtistItem
@@ -104,6 +109,8 @@ fun OnlineSearchScreen(
     val isPlaying by playerConnection.isEffectivelyPlaying.collectAsStateWithLifecycle()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsStateWithLifecycle()
     val viewState by viewModel.viewState.collectAsStateWithLifecycle()
+    val moodAndGenres by viewModel.moodAndGenres.collectAsStateWithLifecycle()
+    val chunkedMoodAndGenres = remember(moodAndGenres) { moodAndGenres?.chunked(2).orEmpty() }
 
     val lazyListState = rememberLazyListState()
 
@@ -375,6 +382,23 @@ fun OnlineSearchScreen(
             }
         }
 
+        if (query.isEmpty() && viewState.history.isNotEmpty()) {
+            item(key = "recent_searches_header") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.recent_searches),
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+        }
+
         items(viewState.history, key = { "history_${it.query}" }) { history ->
             SuggestionItem(
                 query = history.query,
@@ -394,6 +418,70 @@ fun OnlineSearchScreen(
                 modifier = Modifier.animateItem(),
                 pureBlack = pureBlack,
             )
+        }
+
+        if (query.isEmpty() && chunkedMoodAndGenres.isNotEmpty()) {
+            item(key = "mood_genres_header") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = if (viewState.history.isNotEmpty()) 20.dp else 12.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.mood_and_genres),
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+
+            items(chunkedMoodAndGenres, key = { row -> "mood_row_${row.joinToString("_") { it.title }}" }) { pair ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    for (item in pair) {
+                        Surface(
+                            onClick = {
+                                navController.navigate("youtube_browse/${item.endpoint.browseId}?params=${item.endpoint.params}")
+                                onDismiss()
+                            },
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (pureBlack) Color(0xFF161618) else MaterialTheme.colorScheme.surfaceContainerHigh,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 14.dp),
+                                contentAlignment = Alignment.CenterStart,
+                            ) {
+                                Text(
+                                    text = item.title,
+                                    style = MaterialTheme.typography.titleSmall.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    }
+                    if (pair.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+
+            item(key = "mood_genres_bottom_spacer") {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
         }
 
         items(viewState.suggestions, key = { "suggestion_$it" }) { query ->

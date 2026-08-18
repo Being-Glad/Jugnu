@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 package com.metrolist.music.ui.component
@@ -39,7 +39,15 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
+import com.metrolist.music.constants.PureBlackKey
+import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.ui.utils.glassCard
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Button
 import androidx.compose.animation.AnimatedVisibility
@@ -94,6 +102,11 @@ fun SleepTimerDialog(
     initialCustomDays: List<Int> = listOf(0, 1, 2, 3, 4),
     initialDayTimes: Map<Int, Pair<String, String>> = emptyMap(),
 ) {
+    val isSystemDark = isSystemInDarkTheme()
+    val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
+    val isPureBlack = pureBlack && isSystemDark
+    val cardShape = RoundedCornerShape(16.dp)
+
     if (!isVisible) return
 
     var selectedRepeat by remember {
@@ -295,10 +308,22 @@ fun SleepTimerDialog(
                     ),
                 ) + fadeOut(),
             ) {
-                ElevatedCard(
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .then(
+                            if (isPureBlack) {
+                                Modifier.background(Color.Black, cardShape)
+                            } else {
+                                Modifier.glassCard(shape = cardShape)
+                            }
+                        ),
+                    shape = cardShape,
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.Transparent
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     TimeRangeRow(
                         startTime = selectedStartTime,
@@ -326,10 +351,22 @@ fun SleepTimerDialog(
                     ),
                 ) + fadeOut(),
             ) {
-                ElevatedCard(
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .then(
+                            if (isPureBlack) {
+                                Modifier.background(Color.Black, cardShape)
+                            } else {
+                                Modifier.glassCard(shape = cardShape)
+                            }
+                        ),
+                    shape = cardShape,
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.Transparent
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -459,10 +496,22 @@ fun SleepTimerDialog(
                     ),
                 ) + fadeOut(),
             ) {
-                ElevatedCard(
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .then(
+                            if (isPureBlack) {
+                                Modifier.background(Color.Black, cardShape)
+                            } else {
+                                Modifier.glassCard(shape = cardShape)
+                            }
+                        ),
+                    shape = cardShape,
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.Transparent
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         dayLabelRes.indices.forEach { index ->

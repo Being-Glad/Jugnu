@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -75,6 +75,10 @@ import coil3.ImageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.metrolist.music.constants.PureBlackKey
+import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.ui.utils.glassCard
 import com.metrolist.music.R
 import com.metrolist.music.lyrics.LyricsTranslationHelper
 import com.metrolist.music.models.MediaMetadata
@@ -186,7 +190,7 @@ internal fun LyricsActionOverlay(
         contentAlignment = Alignment.BottomCenter
     ) {
         AnimatedVisibility(
-            visible = !isAutoScrollEnabled && isSynced && !isSelectionModeActive,
+            visible = false,
             enter = slideInVertically { it } + fadeIn(),
             exit = slideOutVertically { it } + fadeOut()
         ) {
@@ -234,11 +238,25 @@ internal fun LyricsShareDialog(
 ) {
     val context = LocalContext.current
     BasicAlertDialog(onDismissRequest = onDismiss) {
+        val isSystemDark = isSystemInDarkTheme()
+        val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
+        val isPureBlack = pureBlack && isSystemDark
+        val shape = RoundedCornerShape(24.dp)
+
         Card(
-            shape = MaterialTheme.shapes.medium,
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            modifier = Modifier.padding(16.dp).fillMaxWidth(0.85f)
+            shape = shape,
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(0.85f)
+                .then(
+                    if (isPureBlack) {
+                        Modifier.background(Color.Black, shape)
+                    } else {
+                        Modifier.glassCard(shape = shape)
+                    }
+                )
         ) {
             Column(Modifier.padding(20.dp)) {
                 Text(stringResource(R.string.share_lyrics), fontWeight = FontWeight.Normal, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
@@ -340,7 +358,26 @@ internal fun LyricsColorPickerDialog(
     }
 
     BasicAlertDialog(onDismissRequest = onDismiss) {
-        Card(shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth().padding(20.dp)) {
+        val isSystemDark = isSystemInDarkTheme()
+        val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
+        val isPureBlack = pureBlack && isSystemDark
+        val shape = RoundedCornerShape(24.dp)
+
+        Card(
+            shape = shape,
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+                .then(
+                    if (isPureBlack) {
+                        Modifier.background(Color.Black, shape)
+                    } else {
+                        Modifier.glassCard(shape = shape)
+                    }
+                )
+        ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp)

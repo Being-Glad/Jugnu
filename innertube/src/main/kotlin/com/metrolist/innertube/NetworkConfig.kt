@@ -65,7 +65,7 @@ object NetworkConfig {
                 
                 // Cache configuration
                 if (enableCache) {
-                    val cacheDirectory = cacheDir ?: File(System.getProperty("java.io.tmpdir"), "metrolist_http_cache")
+                    val cacheDirectory = cacheDir ?: File(System.getProperty("java.io.tmpdir"), "jugnu_http_cache")
                     cache(okhttp3.Cache(cacheDirectory, CACHE_SIZE_MB))
                 }
             }
@@ -122,4 +122,28 @@ object NetworkConfig {
         val readTimeout: Long,
         val requestTimeout: Long
     )
+}
+
+/**
+ * DNS implementation that prioritizes IPv4 addresses to avoid connections
+ * hanging on broken IPv6 routes, with in-memory caching to eliminate DNS lookup latency.
+ */
+object PreferIPv4Dns : okhttp3.Dns {
+    private val dnsCache = java.util.concurrent.ConcurrentHashMap<String, Pair<Long, List<java.net.InetAddress>>>()
+    private const val DNS_CACHE_TTL_MS = 10 * 60 * 1000L // 10 minutes
+
+    override fun lookup(hostname: String): List<java.net.InetAddress> {
+        val now = System.currentTimeMillis()
+        dnsCache[hostname]?.let { (timestamp, addresses) ->
+            if (now - timestamp < DNS_CACHE_TTL_MS) {
+                return addresses
+            }
+        }
+        val addresses = okhttp3.Dns.SYSTEM.lookup(hostname)
+        val ipv4 = addresses.filter { it is java.net.Inet4Address }
+        val ipv6 = addresses.filter { it !is java.net.Inet4Address }
+        val result = ipv4 + ipv6
+        dnsCache[hostname] = now to result
+        return result
+    }
 }

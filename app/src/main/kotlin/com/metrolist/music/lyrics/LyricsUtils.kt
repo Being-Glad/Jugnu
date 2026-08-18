@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -1392,6 +1392,15 @@ object LyricsUtils {
         sb.toString()
     }
 
+    fun isLatinOrEnglish(text: String): Boolean {
+        return text.all { char ->
+            char.isWhitespace() ||
+            char in '\u0000'..'\u00FF' || // Basic Latin & Latin-1 Supplement
+            char in '\u0100'..'\u024F' || // Latin Extended A & B
+            ".,'\"!?-()[]{}<>:;|\\/_+=*&^%$#@`~".contains(char)
+        }
+    }
+
     fun isPunjabi(text: String): Boolean {
         return text.any { char ->
             char in '\u0A00'..'\u0A7F'
@@ -1451,6 +1460,7 @@ object LyricsUtils {
             "Korean" in enabledLanguages && isKorean(detectionText) -> romanizeKorean(line)
             "Chinese" in enabledLanguages && isChinese(detectionText) -> romanizeChinese(line)
             "Hindi" in enabledLanguages && isHindi(detectionText) -> romanizeHindi(line)
+            "Punjabi" in enabledLanguages && isPunjabi(detectionText) -> romanizePunjabi(line)
             "Ukrainian" in enabledLanguages && isUkrainian(detectionText) -> romanizeCyrillic(line, "Ukrainian")
             "Russian" in enabledLanguages && isRussian(detectionText) -> romanizeCyrillic(line, "Russian")
             "Serbian" in enabledLanguages && isSerbian(detectionText) -> romanizeCyrillic(line, "Serbian")

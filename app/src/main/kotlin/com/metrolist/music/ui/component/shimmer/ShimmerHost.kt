@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -59,16 +59,16 @@ val ShimmerTheme =
         infiniteRepeatable(
             animation =
             tween(
-                durationMillis = 800,
+                durationMillis = 1400,
                 easing = LinearEasing,
-                delayMillis = 250,
+                delayMillis = 100,
             ),
             repeatMode = RepeatMode.Restart,
         ),
         shaderColors =
         listOf(
-            Color.Unspecified.copy(alpha = 0.25f),
-            Color.Unspecified.copy(alpha = 0.50f),
-            Color.Unspecified.copy(alpha = 0.25f),
+            Color.Unspecified.copy(alpha = 0.05f),
+            Color.Unspecified.copy(alpha = 0.15f),
+            Color.Unspecified.copy(alpha = 0.05f),
         ),
     )

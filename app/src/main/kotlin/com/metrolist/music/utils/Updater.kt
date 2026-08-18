@@ -1,10 +1,16 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
 package com.metrolist.music.utils
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.core.content.FileProvider
 import com.metrolist.music.BuildConfig
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
@@ -13,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 
 data class ReleaseInfo(
     val tagName: String,
@@ -39,7 +46,8 @@ object Updater {
     private var cachedAllReleases: List<ReleaseInfo> = emptyList()
     
     private const val CHECK_INTERVAL_MILLIS = 2 * 60 * 60 * 1000L // 2 hours
-    private const val GITHUB_API_BASE = "https://api.github.com/repos/MetrolistGroup/Metrolist"
+    private const val GITHUB_API_BASE = "https://api.github.com/repos/ompandey/Jugnu"
+    const val GITHUB_RELEASES_URL = "https://github.com/ompandey/Jugnu/releases"
 
     /**
      * Compares two version strings.
@@ -129,8 +137,23 @@ object Updater {
                 }
                 
                 val response = client.get("$GITHUB_API_BASE/releases/latest")
-                    .bodyAsText()
-                val json = JSONObject(response)
+                if (response.status.value == 404) {
+                    val virtualRelease = ReleaseInfo(
+                        tagName = BuildConfig.VERSION_NAME,
+                        versionName = BuildConfig.VERSION_NAME,
+                        description = "You are running the latest version.",
+                        releaseDate = "",
+                        assets = emptyList()
+                    )
+                    cachedReleaseInfo = virtualRelease
+                    lastCheckTime = System.currentTimeMillis()
+                    return@runCatching virtualRelease
+                }
+                if (response.status.value != 200) {
+                    throw Exception("GitHub API returned error code ${response.status.value}")
+                }
+                val responseBody = response.bodyAsText()
+                val json = JSONObject(responseBody)
                 
                 val releaseInfo = ReleaseInfo(
                     tagName = json.getString("tag_name"),
@@ -162,8 +185,15 @@ object Updater {
                 
                 while (hasMore && page <= 10) { // Limit to 10 pages
                     val response = client.get("$GITHUB_API_BASE/releases?page=$page&per_page=30")
-                        .bodyAsText()
-                    val json = JSONArray(response)
+                    if (response.status.value == 404) {
+                        hasMore = false
+                        break
+                    }
+                    if (response.status.value != 200) {
+                        throw Exception("GitHub API returned error code ${response.status.value}")
+                    }
+                    val responseBody = response.bodyAsText()
+                    val json = JSONArray(responseBody)
                     
                     if (json.length() == 0) {
                         hasMore = false
@@ -251,4 +281,86 @@ object Updater {
      * Get the latest release info (cached)
      */
     fun getCachedLatestRelease(): ReleaseInfo? = cachedReleaseInfo
+
+    /**
+     * Download the APK from the given URL to the app's cache directory
+     */
+    suspend fun downloadApk(
+        context: Context,
+        url: String,
+        onProgress: (Float) -> Unit
+    ): Result<File> = withContext(Dispatchers.IO) {
+        runCatching {
+            val destinationFile = File(context.cacheDir, "Jugnu-update.apk")
+            if (destinationFile.exists()) {
+                destinationFile.delete()
+            }
+            
+            val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+            conn.connect()
+            if (conn.responseCode != java.net.HttpURLConnection.HTTP_OK) {
+                throw Exception("Server returned HTTP ${conn.responseCode}")
+            }
+            
+            val fileLength = conn.contentLength
+            val input = conn.inputStream
+            val output = destinationFile.outputStream()
+            
+            val data = ByteArray(8192)
+            var total = 0L
+            var count: Int
+            while (input.read(data).also { count = it } != -1) {
+                output.write(data, 0, count)
+                total += count
+                if (fileLength > 0) {
+                    onProgress(total.toFloat() / fileLength)
+                }
+            }
+            output.flush()
+            output.close()
+            input.close()
+            
+            destinationFile
+        }
+    }
+
+    /**
+     * Checks if the app is allowed to request package installation (Oreo+)
+     */
+    fun canRequestPackageInstalls(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.packageManager.canRequestPackageInstalls()
+        } else {
+            true
+        }
+    }
+
+    /**
+     * Launches the system settings screen to allow installing unknown apps
+     */
+    fun launchManageUnknownAppSourcesIntent(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                data = Uri.parse("package:${context.packageName}")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        }
+    }
+
+    /**
+     * Launches the package installer for the downloaded APK
+     */
+    fun installApk(context: Context, apkFile: File): Result<Unit> {
+        return runCatching {
+            val authority = "${context.packageName}.FileProvider"
+            val apkUri = FileProvider.getUriForFile(context, authority, apkFile)
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(apkUri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        }
+    }
 }

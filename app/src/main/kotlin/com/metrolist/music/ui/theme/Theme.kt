@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -33,6 +33,7 @@ fun MetrolistTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     pureBlack: Boolean = false,
     themeColor: Color = DefaultThemeColor,
+    themeStyle: PaletteStyle = PaletteStyle.TonalSpot,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
@@ -49,7 +50,7 @@ fun MetrolistTheme(
             seedColor = themeColor, // themeColor is guaranteed non-default here
             isDark = darkTheme,
             specVersion = ColorSpec.SpecVersion.SPEC_2025,
-            style = PaletteStyle.TonalSpot // Keep existing style
+            style = themeStyle
         )
     }
 
@@ -98,8 +99,11 @@ fun Bitmap.extractGradientColors(): List<Color> {
 
 fun ColorScheme.pureBlack(apply: Boolean) =
     if (apply) copy(
-        surface = Color.Black,
-        background = Color.Black
+        surface = Color(0xFF070809),
+        background = Color(0xFF070809),
+        surfaceContainer = Color(0xFF121316),
+        surfaceContainerLow = Color(0xFF0D0E10),
+        surfaceContainerHigh = Color(0xFF191A1E)
     ) else this
 
 val ColorSaver = object : Saver<Color, Int> {

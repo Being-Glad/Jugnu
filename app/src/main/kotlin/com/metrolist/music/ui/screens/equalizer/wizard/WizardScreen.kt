@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -18,6 +19,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
+import com.metrolist.music.constants.PureBlackKey
+import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.ui.utils.glassCard
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
 
@@ -252,13 +260,28 @@ private fun ModelItem(
     model: DeviceModel,
     onClick: () -> Unit
 ) {
+    val isSystemDark = isSystemInDarkTheme()
+    val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
+    val isPureBlack = pureBlack && isSystemDark
+    val shape = RoundedCornerShape(16.dp)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clip(shape)
+            .clickable(onClick = onClick)
+            .then(
+                if (isPureBlack) {
+                    Modifier.background(Color.Black, shape)
+                } else {
+                    Modifier.glassCard(shape = shape)
+                }
+            ),
+        shape = shape,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+            containerColor = Color.Transparent
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
@@ -332,9 +355,23 @@ private fun VariantSelectionStep(
             }
         }
 
+        val isSystemDark = isSystemInDarkTheme()
+        val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
+        val isPureBlack = pureBlack && isSystemDark
+        val surfaceShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
         Surface(
-            tonalElevation = 3.dp,
-            shadowElevation = 8.dp
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(
+                    if (isPureBlack) {
+                        Modifier.background(Color.Black, surfaceShape)
+                    } else {
+                        Modifier.glassCard(shape = surfaceShape, cornerRadius = 24.dp)
+                    }
+                ),
+            color = Color.Transparent,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp
         ) {
             val bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
             Button(
@@ -368,17 +405,39 @@ private fun VariantItem(
     isSelected: Boolean,
     onToggle: () -> Unit
 ) {
+    val isSystemDark = isSystemInDarkTheme()
+    val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
+    val isPureBlack = pureBlack && isSystemDark
+    val shape = RoundedCornerShape(16.dp)
+
+    val dynamicPrimary = MaterialTheme.colorScheme.primary
+    val bg = if (isSelected) {
+        if (isPureBlack) Color(0xFF1E1E1E) else dynamicPrimary.copy(alpha = 0.15f)
+    } else {
+        if (isPureBlack) Color.Black else Color(0xFF121316).copy(alpha = 0.65f)
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onToggle),
+            .clip(shape)
+            .clickable(onClick = onToggle)
+            .then(
+                if (isPureBlack) {
+                    Modifier.background(bg, shape)
+                } else {
+                    Modifier.glassCard(
+                        shape = shape,
+                        borderColor = if (isSelected) dynamicPrimary else null,
+                        backgroundColor = bg
+                    )
+                }
+            ),
+        shape = shape,
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant
-            }
-        )
+            containerColor = Color.Transparent
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier

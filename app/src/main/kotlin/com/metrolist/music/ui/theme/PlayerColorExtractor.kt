@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -70,6 +70,64 @@ object PlayerColorExtractor {
             ), // Middle: darker version of primary color
             Color.Black // End: black
         )
+    }
+
+    /**
+     * Extracts dynamic but highly sophisticated, desaturated dark colors for the capsule
+     * (MiniPlayer and AppNavigationBar) to ensure a high-end, aesthetic, and premium look.
+     */
+    suspend fun extractCapsuleGradientColors(
+        palette: Palette,
+        fallbackColor: Int
+    ): List<Color> = withContext(Dispatchers.Default) {
+        val dominantSwatch = palette.dominantSwatch
+        val vibrantSwatch = palette.vibrantSwatch
+        val mutedSwatch = palette.mutedSwatch
+        val darkVibrantSwatch = palette.darkVibrantSwatch
+        val darkMutedSwatch = palette.darkMutedSwatch
+
+        // Select the primary color source (preferring dark variants or dominant)
+        val primarySource = dominantSwatch ?: darkVibrantSwatch ?: vibrantSwatch ?: mutedSwatch ?: darkMutedSwatch
+
+        val color1: Color
+        val color2: Color
+
+        if (primarySource != null) {
+            val baseColor = Color(primarySource.rgb)
+            // Color 1: Soft, desaturated, dark variant of the primary color source
+            color1 = desaturateAndDarken(baseColor, targetSaturation = 0.28f, targetBrightness = 0.16f)
+
+            // Color 2: Harmonious, slightly darker or hue-shifted second tone to form a subtle gradient
+            val secondarySource = darkMutedSwatch ?: mutedSwatch ?: darkVibrantSwatch
+            if (secondarySource != null && secondarySource != primarySource) {
+                val secColor = Color(secondarySource.rgb)
+                color2 = desaturateAndDarken(secColor, targetSaturation = 0.22f, targetBrightness = 0.12f)
+            } else {
+                color2 = desaturateAndDarken(baseColor, targetSaturation = 0.20f, targetBrightness = 0.10f)
+            }
+        } else {
+            val fallback = Color(fallbackColor)
+            color1 = desaturateAndDarken(fallback, targetSaturation = 0.28f, targetBrightness = 0.16f)
+            color2 = desaturateAndDarken(fallback, targetSaturation = 0.20f, targetBrightness = 0.10f)
+        }
+
+        listOf(color1, color2)
+    }
+
+    /**
+     * Adjusts saturation and brightness of a color to create a premium, muted dark tone.
+     */
+    private fun desaturateAndDarken(color: Color, targetSaturation: Float, targetBrightness: Float): Color {
+        val argb = color.toArgb()
+        val hsv = FloatArray(3)
+        android.graphics.Color.colorToHSV(argb, hsv)
+        
+        // Clamp saturation to prevent neon/bright colors, keep it very soft and elegant
+        hsv[1] = hsv[1].coerceAtMost(targetSaturation).coerceAtLeast(0.08f)
+        // Set brightness strictly to target dark levels for high-end aesthetic and great contrast
+        hsv[2] = targetBrightness
+        
+        return Color(android.graphics.Color.HSVToColor(hsv))
     }
 
     /**

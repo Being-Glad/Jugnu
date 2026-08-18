@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -33,12 +33,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.metrolist.music.ui.utils.glassCard
 
 // Enhanced Action Button - Material 3 Expressive Design
 @Composable
@@ -72,17 +74,12 @@ fun NewActionButton(
         }
     }
 
-    Card(
+    Box(
         modifier =
             modifier
+                .glassCard(cornerRadius = 16.dp, backgroundColor = animatedBackground)
+                .clip(RoundedCornerShape(16.dp))
                 .clickable(enabled = enabled) { performAction = true },
-        colors =
-            CardDefaults.cardColors(
-                containerColor = animatedBackground,
-            ),
-        shape = RoundedCornerShape(16.dp),
-        elevation =
-            CardDefaults.cardElevation(),
     ) {
         Column(
             modifier =

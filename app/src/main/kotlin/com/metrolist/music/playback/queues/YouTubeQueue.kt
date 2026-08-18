@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -15,7 +15,7 @@ import kotlinx.coroutines.withContext
 
 class YouTubeQueue(
     private var endpoint: WatchEndpoint,
-    override val preloadItem: MediaMetadata? = null,
+    override val preloadItem: MediaMetadata? = endpoint.videoId?.let { MediaMetadata(id = it, title = "", artists = emptyList(), duration = -1) },
 ) : Queue {
     private var continuation: String? = null
     private var retryCount = 0

@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -89,11 +89,23 @@ fun BottomSheet(
             .pointerInput(state, isExpandable) {
                 if (!isExpandable) return@pointerInput
                 val velocityTracker = VelocityTracker()
+                var startedAboveCollapsed = false
 
                 detectVerticalDragGestures(
+                    onDragStart = {
+                        startedAboveCollapsed = state.value > state.collapsedBound
+                    },
                     onVerticalDrag = { change, dragAmount ->
                         velocityTracker.addPointerInputChange(change)
-                        state.dispatchRawDelta(dragAmount)
+                        val deltaDp = with(density) { dragAmount.toDp() }
+                        val newValue = state.value - deltaDp
+                        if (startedAboveCollapsed && newValue < state.collapsedBound) {
+                            if (state.value != state.collapsedBound) {
+                                state.snapTo(state.collapsedBound)
+                            }
+                        } else {
+                            state.dispatchRawDelta(dragAmount)
+                        }
                     },
                     onDragCancel = {
                         velocityTracker.resetTracking()

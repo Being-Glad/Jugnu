@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -89,11 +89,13 @@ fun SearchScreen(
     val lazyListState = rememberLazyListState()
     var isHandlingScrollToTop by remember { mutableStateOf(false) }
 
+    val openKeyboardDirectly by savedStateHandle.getStateFlow("openKeyboardDirectly", false).collectAsStateWithLifecycle(initialValue = false)
     val scrollToTopCount by savedStateHandle.getStateFlow("scrollToTopCount", 0).collectAsStateWithLifecycle(initialValue = 0)
 
     var lastHandledCount by rememberSaveable { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
-        if (!isPlayerExpanded) {
+        if (!isPlayerExpanded && openKeyboardDirectly) {
+            savedStateHandle["openKeyboardDirectly"] = false
             kotlinx.coroutines.delay(100)
             try {
                 focusRequester.requestFocus()
@@ -124,7 +126,6 @@ fun SearchScreen(
         }
     }
 
-    var searchSource by rememberEnumPreference(SearchSourceKey, SearchSource.ONLINE)
     var query by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue())
     }
@@ -201,13 +202,7 @@ fun SearchScreen(
                             decorationBox = { innerTextField ->
                                 if (query.text.isEmpty()) {
                                     Text(
-                                        text =
-                                            stringResource(
-                                                when (searchSource) {
-                                                    SearchSource.LOCAL -> R.string.search_library
-                                                    SearchSource.ONLINE -> R.string.search_yt_music
-                                                },
-                                            ),
+                                        text = stringResource(R.string.search_unified_hint),
                                         style =
                                             TextStyle(
                                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
@@ -227,34 +222,10 @@ fun SearchScreen(
                                 ),
                         )
 
-                        Row {
-                            if (query.text.isNotEmpty()) {
-                                IconButton(onClick = { query = TextFieldValue("") }) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.close),
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurface,
-                                    )
-                                }
-                            }
-                            IconButton(
-                                onClick = {
-                                    searchSource =
-                                        if (searchSource == SearchSource.ONLINE) {
-                                            SearchSource.LOCAL
-                                        } else {
-                                            SearchSource.ONLINE
-                                        }
-                                },
-                            ) {
+                        if (query.text.isNotEmpty()) {
+                            IconButton(onClick = { query = TextFieldValue("") }) {
                                 Icon(
-                                    painter =
-                                        painterResource(
-                                            when (searchSource) {
-                                                SearchSource.LOCAL -> R.drawable.library_music
-                                                SearchSource.ONLINE -> R.drawable.language
-                                            },
-                                        ),
+                                    painter = painterResource(R.drawable.close),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurface,
                                 )
@@ -293,25 +264,13 @@ fun SearchScreen(
                         .padding(bottom = bottomPadding)
                         .fillMaxSize(),
             ) {
-                when (searchSource) {
-                    SearchSource.LOCAL -> {
-                        LocalSearchScreen(
-                            query = query.text,
-                            onDismiss = { navController.navigateUp() },
-                            pureBlack = pureBlack,
-                        )
-                    }
-
-                    SearchSource.ONLINE -> {
-                        OnlineSearchScreen(
-                            query = query.text,
-                            onQueryChange = { query = it },
-                            onSearch = onSearchFromSuggestion,
-                            onDismiss = { /* Don't dismiss when searching from suggestions */ },
-                            pureBlack = pureBlack,
-                        )
-                    }
-                }
+                OnlineSearchScreen(
+                    query = query.text,
+                    onQueryChange = { query = it },
+                    onSearch = onSearchFromSuggestion,
+                    onDismiss = { /* Don't dismiss when searching from suggestions */ },
+                    pureBlack = pureBlack,
+                )
             }
 
             HideOnScrollFAB(

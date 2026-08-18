@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -7,9 +7,11 @@ package com.metrolist.music.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -46,7 +48,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ContainedLoadingIndicator
+import com.metrolist.music.ui.component.MetrolistContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -69,12 +71,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -84,16 +91,28 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.lerp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.metrolist.music.LocalNavController
+import com.metrolist.music.ui.component.BottomSheetState
+import com.metrolist.music.ui.utils.glassCard
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.imageLoader
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.request.allowHardware
 import coil3.request.crossfade
+import coil3.size.Size
+import coil3.toBitmap
+import androidx.palette.graphics.Palette
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.AlbumItem
 import com.metrolist.innertube.models.ArtistItem
@@ -118,6 +137,7 @@ import com.metrolist.music.constants.InnerTubeCookieKey
 import com.metrolist.music.constants.ListItemHeight
 import com.metrolist.music.constants.ListThumbnailSize
 import com.metrolist.music.constants.RandomizeHomeOrderKey
+import com.metrolist.music.constants.ShowTrendingArtistsKey
 import com.metrolist.music.constants.SmallGridThumbnailHeight
 import com.metrolist.music.constants.ThumbnailCornerRadius
 import com.metrolist.music.db.entities.Album
@@ -127,6 +147,11 @@ import com.metrolist.music.db.entities.Playlist
 import com.metrolist.music.db.entities.PlaylistEntity
 import com.metrolist.music.db.entities.PlaylistSongMap
 import com.metrolist.music.db.entities.Song
+import com.metrolist.music.LocalSyncUtils
+import com.metrolist.music.db.entities.SongEntity
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.ui.unit.sp
 import com.metrolist.music.extensions.toMediaItem
 import com.metrolist.music.models.toMediaMetadata
 import com.metrolist.music.playback.queues.ListQueue
@@ -166,6 +191,8 @@ import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.CommunityPlaylistItem
 import com.metrolist.music.viewmodels.HomeViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -229,10 +256,11 @@ fun CommunityPlaylistCard(
         modifier =
             modifier
                 .width(320.dp)
-                .height(420.dp),
+                .height(420.dp)
+                .glassCard(cornerRadius = 28.dp),
         colors =
             CardDefaults.cardColors(
-                containerColor = containerColor,
+                containerColor = Color.Transparent,
             ),
         shape = RoundedCornerShape(28.dp),
         onClick = onClick,
@@ -527,10 +555,11 @@ fun DailyDiscoverCard(
                             }
                         }
                     },
-                ),
+                )
+                .glassCard(cornerRadius = 28.dp),
         colors =
             CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                containerColor = Color.Transparent,
             ),
         shape = RoundedCornerShape(28.dp),
     ) {
@@ -625,10 +654,12 @@ fun DailyDiscoverCard(
     }
 }
 
+
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HomeScreen(
     snackbarHostState: SnackbarHostState,
+    playerBottomSheetState: BottomSheetState? = null,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val navController = LocalNavController.current
@@ -675,6 +706,7 @@ fun HomeScreen(
     val accountName by viewModel.accountName.collectAsStateWithLifecycle()
     val accountImageUrl by viewModel.accountImageUrl.collectAsStateWithLifecycle()
     val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
+    val showTrendingArtists by rememberPreference(ShowTrendingArtistsKey, defaultValue = false)
     val (randomizeHomeOrder) = rememberPreference(RandomizeHomeOrderKey, true)
     val autoRadioQueue by rememberPreference(AutoRadioQueueKey, defaultValue = true)
 
@@ -767,6 +799,9 @@ fun HomeScreen(
 
     LaunchedEffect(scrollToTop?.value) {
         if (scrollToTop?.value == true) {
+            if (selectedChip != null) {
+                viewModel.toggleChip(null)
+            }
             lazylistState.animateScrollToItem(0)
             backStackEntry?.savedStateHandle?.set("scrollToTop", false)
         }
@@ -1043,56 +1078,43 @@ fun HomeScreen(
                 list.add(HomeSection.HomePageSection(i))
             }
 
-            if (explorePage?.moodAndGenres != null) list.add(HomeSection.MoodAndGenres)
-
             if (randomizeHomeOrder) {
                 list.sortedByDescending { section ->
-                    // Use a stable seed for each section based on the session seed + section ID hash
-                    // This ensures the weight for a specific section remains constant during a session (until refresh)
-                    // even if other sections appear/disappear, preventing jumping.
                     val sectionRandom = Random(randomSeed + section.id.hashCode())
 
-                    // Flatten the base values to allow for more overlap and variation
-                    // All "main" sections start closer together
                     val base =
                         when (section) {
                             HomeSection.SpeedDial,
                             HomeSection.QuickPicks,
+                            -> 600 // Top priority directly after trending carousel
+
                             HomeSection.DailyDiscover,
-                            -> 500
-
-                            // Top tier starts equal
-
                             HomeSection.KeepListening,
                             HomeSection.AccountPlaylists,
                             HomeSection.ForgottenFavorites,
-                            HomeSection.FromTheCommunity,
-                            -> 300
+                            -> 400 // Personalized middle tier
 
-                            // Middle tier starts equal
+                            HomeSection.FromTheCommunity
+                            -> 200 // For You / Community moved down
 
                             else -> 100 // Bottom tier
                         }
 
                     val modifier =
                         when (section) {
-                            // Top tier: High variance to allow shuffling among themselves
-                            // Range: [500-200, 500+400] = [300, 900]
                             HomeSection.SpeedDial,
                             HomeSection.QuickPicks,
-                            HomeSection.DailyDiscover,
-                            -> sectionRandom.nextInt(-200, 400)
+                            -> sectionRandom.nextInt(-100, 300)
 
-                            // Middle tier: Can jump up to challenge top tier, or drop lower
-                            // Range: [300-100, 300+400] = [200, 700]
-                            // This allows them to occasionally appear above a "bad roll" top tier item
+                            HomeSection.DailyDiscover,
                             HomeSection.KeepListening,
                             HomeSection.AccountPlaylists,
                             HomeSection.ForgottenFavorites,
-                            HomeSection.FromTheCommunity,
-                            -> sectionRandom.nextInt(-100, 400)
+                            -> sectionRandom.nextInt(-100, 200)
 
-                            // Bottom tier: Standard variance
+                            HomeSection.FromTheCommunity,
+                            -> sectionRandom.nextInt(-50, 100)
+
                             else -> sectionRandom.nextInt(-50, 50)
                         }
                     base + modifier
@@ -1102,11 +1124,11 @@ fun HomeScreen(
                     mapOf(
                         HomeSection.SpeedDial to 100,
                         HomeSection.QuickPicks to 90,
-                        HomeSection.FromTheCommunity to 80,
-                        HomeSection.DailyDiscover to 70,
-                        HomeSection.KeepListening to 60,
-                        HomeSection.AccountPlaylists to 50,
-                        HomeSection.ForgottenFavorites to 40,
+                        HomeSection.DailyDiscover to 80,
+                        HomeSection.KeepListening to 70,
+                        HomeSection.AccountPlaylists to 60,
+                        HomeSection.ForgottenFavorites to 50,
+                        HomeSection.FromTheCommunity to 35,
                         HomeSection.MoodAndGenres to 10,
                     )
 
@@ -1147,6 +1169,114 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.TopStart,
         ) {
+            val trendingSongsVal by viewModel.trendingSongs.collectAsStateWithLifecycle()
+            val trendingArtistImages by viewModel.trendingArtistImages.collectAsStateWithLifecycle()
+            val carouselSongs = remember(trendingSongsVal, pinnedSpeedDialItems, speedDialItems, isLoggedIn) {
+                val trending = trendingSongsVal.orEmpty()
+                val pinnedSongs = pinnedSpeedDialItems.mapNotNull { it.toYTItem() as? SongItem }
+                val userSongs = if (pinnedSongs.isNotEmpty()) pinnedSongs else speedDialItems.filterIsInstance<SongItem>()
+                if (isLoggedIn && userSongs.isNotEmpty()) {
+                    val mixed = mutableListOf<SongItem>()
+                    val maxLen = maxOf(userSongs.size, trending.size)
+                    for (i in 0 until maxLen) {
+                        if (i < userSongs.size) mixed.add(userSongs[i])
+                        if (i < trending.size && !mixed.any { it.id == trending[i].id }) {
+                            mixed.add(trending[i])
+                        }
+                    }
+                    mixed.distinctBy { it.id }
+                } else {
+                    trending
+                }
+            }
+            val songCount = carouselSongs.size.coerceAtLeast(1)
+            val initialPage = remember(songCount) { (1000 * songCount) / 2 }
+            val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { 1000 * songCount })
+
+            val syncUtils = LocalSyncUtils.current
+
+            // Palette extraction for carousel ambient background
+            val paletteColors = remember(carouselSongs) {
+                mutableStateListOf<Color?>(*arrayOfNulls(carouselSongs.size))
+            }
+            val platformContext = LocalPlatformContext.current
+
+            LaunchedEffect(carouselSongs) {
+                carouselSongs.forEachIndexed { index, song ->
+                    if (song.thumbnail.isNotEmpty()) {
+                        withContext(Dispatchers.IO) {
+                            try {
+                                val request = ImageRequest.Builder(platformContext)
+                                    .data(song.thumbnail)
+                                    .size(100, 100)
+                                    .allowHardware(false)
+                                    .build()
+                                val result = runCatching { platformContext.imageLoader.execute(request) }.getOrNull()
+                                if (result is SuccessResult) {
+                                    val bitmap = result.image.toBitmap()
+                                    val palette = Palette.from(bitmap)
+                                        .maximumColorCount(16)
+                                        .generate()
+                                    val swatch = palette.vibrantSwatch
+                                        ?: palette.dominantSwatch
+                                        ?: palette.darkVibrantSwatch
+                                        ?: palette.lightVibrantSwatch
+                                        ?: palette.mutedSwatch
+                                    if (swatch != null) {
+                                        val c = swatch.rgb
+                                        val extracted = Color(
+                                            red = android.graphics.Color.red(c) / 255f,
+                                            green = android.graphics.Color.green(c) / 255f,
+                                            blue = android.graphics.Color.blue(c) / 255f,
+                                            alpha = 1f
+                                        )
+                                        if (index < paletteColors.size) {
+                                            paletteColors[index] = extracted
+                                        }
+                                    }
+                                }
+                            } catch (_: Exception) {}
+                        }
+                    }
+                }
+            }
+
+            if (selectedChip == null && carouselSongs.isNotEmpty()) {
+                val realIndex = (pagerState.currentPage % songCount + songCount) % songCount
+                val currentPaletteColor = paletteColors.getOrNull(realIndex) ?: Color(0xFF1E1E2C)
+                val targetColor by androidx.compose.animation.animateColorAsState(
+                    targetValue = currentPaletteColor,
+                    animationSpec = androidx.compose.animation.core.tween(
+                        durationMillis = 600,
+                        easing = androidx.compose.animation.core.FastOutSlowInEasing
+                    ),
+                    label = "bgColor"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf<Color>(
+                                    targetColor.copy(alpha = 0.35f),
+                                    targetColor.copy(alpha = 0.20f),
+                                    targetColor.copy(alpha = 0.08f),
+                                    targetColor.copy(alpha = 0.02f),
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                )
+            }
+
             val horizontalLazyGridItemWidthFactor = if (maxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
             val horizontalLazyGridItemWidth = maxWidth * horizontalLazyGridItemWidthFactor
             val quickPicksSnapLayoutInfoProvider =
@@ -1168,10 +1298,87 @@ fun HomeScreen(
                     )
                 }
 
+            val basePadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
             LazyColumn(
                 state = lazylistState,
-                contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
+                contentPadding = PaddingValues(
+                    top = androidx.compose.ui.unit.max(0.dp, basePadding.calculateTopPadding() - 24.dp),
+                    bottom = basePadding.calculateBottomPadding(),
+                    start = basePadding.calculateLeftPadding(androidx.compose.ui.platform.LocalLayoutDirection.current),
+                    end = basePadding.calculateRightPadding(androidx.compose.ui.platform.LocalLayoutDirection.current)
+                ),
             ) {
+
+                // 2. TRENDING CAROUSEL — skeleton while loading, carousel once loaded
+                if (selectedChip == null) {
+                    item(key = "trending_carousel") {
+                        if (carouselSongs.isNotEmpty()) {
+                            TrendingCarousel(
+                                songs = carouselSongs,
+                                pagerState = pagerState,
+                                onSongClick = { song ->
+                                    if (!isListenTogetherGuest) {
+                                        playerConnection.playQueue(
+                                            YouTubeQueue(
+                                                song.endpoint ?: WatchEndpoint(videoId = song.id),
+                                                song.toMediaMetadata()
+                                            )
+                                        )
+                                        playerBottomSheetState?.expandSoft()
+                                    }
+                                },
+                                database = database,
+                                syncUtils = syncUtils,
+                                navController = navController
+                            )
+                        } else {
+                            // Skeleton placeholder while trending songs load
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(290.dp)
+                                    .background(
+                                        brush = Brush.horizontalGradient(
+                                            colors = listOf(
+                                                Color.White.copy(alpha = 0.05f),
+                                                Color.Transparent
+                                            )
+                                        )
+                                    )
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxHeight()
+                                        .fillMaxWidth(0.6f)
+                                        .padding(start = 20.dp, top = 24.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .width(80.dp).height(10.dp)
+                                            .clip(RoundedCornerShape(5.dp))
+                                            .background(Color.White.copy(alpha = 0.12f))
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .width(160.dp).height(18.dp)
+                                            .clip(RoundedCornerShape(5.dp))
+                                            .background(Color.White.copy(alpha = 0.10f))
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .width(120.dp).height(12.dp)
+                                            .clip(RoundedCornerShape(5.dp))
+                                            .background(Color.White.copy(alpha = 0.07f))
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(24.dp))
+                    }
+                }
+
+                // 3. CATEGORY CHIPS ROW
                 item {
                     ChipsRow(
                         chips = homePage?.chips?.map { it to it.title } ?: emptyList(),
@@ -1180,6 +1387,219 @@ fun HomeScreen(
                             viewModel.toggleChip(it)
                         },
                     )
+                }
+
+                // 4. TRENDING ARTISTS SECTION (only if selectedChip == null)
+                if (selectedChip == null) {
+                    if (showTrendingArtists) {
+                        item(key = "trending_artists_header") {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Trending Artists",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp
+                                    ),
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = "View all",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = FontWeight.Medium
+                                    ),
+                                    color = Color(0xFF8E2DE2),
+                                    modifier = Modifier.clickable {
+                                        navController.navigate("youtube_browse/FEmusic_charts")
+                                    }
+                                )
+                            }
+                        }
+
+                        item(key = "trending_artists_list") {
+                            // One entry per artist: take first named artist from each song
+                            // This guarantees every artist circle shows a DIFFERENT album thumbnail
+                            val artistsFromSongs = remember(trendingSongsVal, trendingArtistImages) {
+                                val seenArtistIds = mutableSetOf<String>()
+                                trendingSongsVal
+                                    ?.mapNotNull { song ->
+                                        val artist = song.artists.firstOrNull { it.id != null }
+                                        if (artist != null && seenArtistIds.add(artist.id!!)) {
+                                            val realPhoto = trendingArtistImages[artist.id!!] ?: song.thumbnail
+                                            Triple(artist.name, artist.id!!, realPhoto)
+                                        } else null
+                                    }
+                                    ?.take(8)
+                                    ?: emptyList()
+                            }
+
+                            if (artistsFromSongs.isNotEmpty()) {
+                                // Loaded state
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    items(artistsFromSongs) { artist ->
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            modifier = Modifier
+                                                .width(72.dp)
+                                                .clickable {
+                                                    navController.navigate("artist/${artist.second}")
+                                                }
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(64.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color.White.copy(alpha = 0.06f)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                AsyncImage(
+                                                    model = artist.third,
+                                                    contentDescription = artist.first,
+                                                    contentScale = ContentScale.Crop,
+                                                    modifier = Modifier
+                                                        .fillMaxSize()
+                                                        .clip(CircleShape)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text(
+                                                text = artist.first,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = Color.White,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
+                                    }
+                                }
+                            } else {
+                                // Skeleton while artists load
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    userScrollEnabled = false
+                                ) {
+                                    items(5) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            modifier = Modifier.width(72.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(64.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color.White.copy(alpha = 0.06f))
+                                            )
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .height(14.dp)
+                                                    .fillMaxWidth(0.7f)
+                                                    .clip(RoundedCornerShape(4.dp))
+                                                    .background(Color.White.copy(alpha = 0.06f))
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                    }
+                }
+
+
+
+                // 6. POPULAR PLAYLISTS SECTION (only if selectedChip == null)
+                if (selectedChip == null) {
+                    val playlistsToShow = communityPlaylists?.distinctBy { it.playlist.id } ?: emptyList()
+                    if (playlistsToShow.isNotEmpty()) {
+                        item(key = "popular_playlists_header") {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Popular Playlists",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp
+                                    ),
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = "More",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = FontWeight.Medium
+                                    ),
+                                    color = Color(0xFF8E2DE2),
+                                    modifier = Modifier.clickable {
+                                        navController.navigate("youtube_browse/FEmusic_charts")
+                                    }
+                                )
+                            }
+                        }
+
+                        item(key = "popular_playlists_list") {
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                items(playlistsToShow) { playlist ->
+                                    Box(
+                                        modifier = Modifier
+                                            .size(width = 160.dp, height = 100.dp)
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .clickable {
+                                                navController.navigate("online_playlist/${playlist.playlist.id.removePrefix("VL")}")
+                                            }
+                                    ) {
+                                        AsyncImage(
+                                            model = playlist.playlist.thumbnail,
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(
+                                                    brush = Brush.verticalGradient(
+                                                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))
+                                                    )
+                                                )
+                                        )
+                                        Text(
+                                            text = playlist.playlist.title,
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp
+                                            ),
+                                            color = Color.White,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier
+                                                .align(Alignment.BottomStart)
+                                                .padding(12.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                    }
                 }
 
                 if (isLoading && homePage?.chips.isNullOrEmpty()) {
@@ -1371,11 +1791,13 @@ fun HomeScreen(
                                 modifier =
                                     Modifier
                                         .fillMaxWidth()
-                                        .padding(16.dp),
+                                        .padding(16.dp)
+                                        .glassCard(cornerRadius = 28.dp),
                                 colors =
                                     CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        containerColor = Color.Transparent,
                                     ),
+                                shape = RoundedCornerShape(28.dp),
                             ) {
                                 Box(
                                     modifier =
@@ -1419,7 +1841,7 @@ fun HomeScreen(
                                             }
                                         }
                                     } else {
-                                        ContainedLoadingIndicator()
+                                        MetrolistContainedLoadingIndicator()
                                     }
                                 }
                             }
@@ -2523,83 +2945,403 @@ fun HomeScreen(
             }
 
             HideOnScrollFAB(
-                visible = allLocalItems.isNotEmpty() || allYtItems.isNotEmpty(),
+                visible = true,
                 lazyListState = lazylistState,
-                icon = R.drawable.shuffle,
+                icon = R.drawable.mic,
                 onClick = {
-                    if (!isListenTogetherGuest) {
-                        val local =
-                            when {
-                                allLocalItems.isNotEmpty() && allYtItems.isNotEmpty() -> Random.nextFloat() < 0.5
-                                allLocalItems.isNotEmpty() -> true
-                                else -> false
-                            }
-                        scope.launch(Dispatchers.Main) {
-                            if (local) {
-                                when (val luckyItem = allLocalItems.random()) {
-                                    is Song -> {
-                                        playerConnection.playQueue(YouTubeQueue.radio(luckyItem.toMediaMetadata()))
-                                    }
-
-                                    is Album -> {
-                                        val albumWithSongs =
-                                            withContext(Dispatchers.IO) {
-                                                database.albumWithSongs(luckyItem.id).first()
-                                            }
-                                        albumWithSongs?.let {
-                                            playerConnection.playQueue(LocalAlbumRadio(it))
-                                        }
-                                    }
-
-                                    is Artist -> {}
-
-                                    is Playlist -> {}
-                                }
-                            } else {
-                                when (val luckyItem = allYtItems.random()) {
-                                    is SongItem -> {
-                                        playerConnection.playQueue(YouTubeQueue.radio(luckyItem.toMediaMetadata()))
-                                    }
-
-                                    is AlbumItem -> {
-                                        playerConnection.playQueue(YouTubeAlbumRadio(luckyItem.playlistId))
-                                    }
-
-                                    is ArtistItem -> {
-                                        luckyItem.radioEndpoint?.let {
-                                            playerConnection.playQueue(YouTubeQueue(it))
-                                        }
-                                    }
-
-                                    is PlaylistItem -> {
-                                        luckyItem.playEndpoint?.let {
-                                            playerConnection.playQueue(YouTubeQueue(it))
-                                        }
-                                    }
-
-                                    is PodcastItem -> {
-                                        luckyItem.playEndpoint?.let {
-                                            playerConnection.playQueue(YouTubeQueue(it))
-                                        }
-                                    }
-
-                                    is EpisodeItem -> {
-                                        playerConnection.playQueue(
-                                            ListQueue(
-                                                title = luckyItem.title,
-                                                items = listOf(luckyItem.toMediaMetadata().toMediaItem()),
-                                            ),
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                onRecognitionClick = {
                     navController.navigate("recognition")
                 },
             )
         }
     }
 }
+
+private fun hslToColor(hue: Float, saturation: Float, lightness: Float): Color {
+    val c = (1f - kotlin.math.abs(2f * lightness - 1f)) * saturation
+    val x = c * (1f - kotlin.math.abs((hue / 60f) % 2f - 1f))
+    val m = lightness - c / 2f
+    val (r, g, b) = when {
+        hue < 60f -> Triple(c, x, 0f)
+        hue < 120f -> Triple(x, c, 0f)
+        hue < 180f -> Triple(0f, c, x)
+        hue < 240f -> Triple(0f, x, c)
+        hue < 300f -> Triple(x, 0f, c)
+        else -> Triple(c, 0f, x)
+    }
+    return Color(
+        red = r + m,
+        green = g + m,
+        blue = b + m,
+        alpha = 1f
+    )
+}
+
+private fun getVibrantColorForSong(id: String): Color {
+    val hash = id.hashCode()
+    val hue = (kotlin.math.abs(hash) % 360).toFloat()
+    val saturation = 0.8f
+    val lightness = 0.35f
+    return hslToColor(hue, saturation, lightness)
+}
+
+private fun getGreeting(): String {
+    val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+    return when (hour) {
+        in 5..11 -> "Good Morning"
+        in 12..16 -> "Good Afternoon"
+        else -> "Good Evening"
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun TrendingCarousel(
+    songs: List<SongItem>,
+    pagerState: androidx.compose.foundation.pager.PagerState,
+    onSongClick: (SongItem) -> Unit,
+    database: com.metrolist.music.db.MusicDatabase,
+    syncUtils: com.metrolist.music.utils.SyncUtils,
+    navController: androidx.navigation.NavController,
+    modifier: Modifier = Modifier
+) {
+    // KEY FIX: Use settledPage (not currentPage) so the LaunchedEffect is never
+    // cancelled mid-animation. collectLatest cancels any pending delay/animation
+    // when the user manually swipes to a new page.
+    val realCount = songs.size.coerceAtLeast(1)
+    LaunchedEffect(songs) {
+        snapshotFlow { pagerState.settledPage }
+            .collectLatest { settledPage ->
+                if (songs.isNotEmpty()) {
+                    delay(4500)
+                    pagerState.animateScrollToPage(
+                        settledPage + 1,
+                        animationSpec = androidx.compose.animation.core.tween(
+                            durationMillis = 600,
+                            easing = androidx.compose.animation.core.FastOutSlowInEasing
+                        )
+                    )
+                }
+            }
+    }
+
+    // Cache of extracted palette colors per song (index -> Color)
+    val paletteColors = remember(songs) { mutableStateListOf<Color?>(*arrayOfNulls(songs.size)) }
+    val context = LocalPlatformContext.current
+
+    // Extract palette colors for each song thumbnail in the background
+    LaunchedEffect(songs) {
+        songs.forEachIndexed { index, song ->
+            if (song.thumbnail.isNotEmpty()) {
+                kotlinx.coroutines.withContext(Dispatchers.IO) {
+                    try {
+                        val request = ImageRequest.Builder(context)
+                            .data(song.thumbnail)
+                            .size(100, 100)
+                            .allowHardware(false)
+                            .build()
+                        val result = runCatching { context.imageLoader.execute(request) }.getOrNull()
+                        if (result is SuccessResult) {
+                            val bitmap = result.image.toBitmap()
+                            val palette = Palette.from(bitmap)
+                                .maximumColorCount(16)
+                                .generate()
+                            val swatch = palette.vibrantSwatch
+                                ?: palette.dominantSwatch
+                                ?: palette.darkVibrantSwatch
+                                ?: palette.lightVibrantSwatch
+                                ?: palette.mutedSwatch
+                            if (swatch != null) {
+                                val c = swatch.rgb
+                                val extracted = Color(
+                                    red = android.graphics.Color.red(c) / 255f,
+                                    green = android.graphics.Color.green(c) / 255f,
+                                    blue = android.graphics.Color.blue(c) / 255f,
+                                    alpha = 1f
+                                )
+                                paletteColors[index] = extracted
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+        }
+    }
+
+    // Interpolated background color: blend between current and next page based on drag offset
+    val currentRealPage = (pagerState.currentPage % realCount + realCount) % realCount
+    val currentColor = paletteColors.getOrNull(currentRealPage) ?: Color(0xFF141414)
+    val nextRealPage = (currentRealPage + 1) % realCount
+    val nextColor = paletteColors.getOrNull(nextRealPage) ?: Color(0xFF141414)
+    val pageOffset = pagerState.currentPageOffsetFraction
+    val rawBgColor = lerp(currentColor, nextColor, pageOffset.coerceIn(0f, 1f))
+    val bgColor by animateColorAsState(
+        targetValue = rawBgColor,
+        animationSpec = androidx.compose.animation.core.tween(400),
+        label = "trending_bg"
+    )
+
+    Box(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            HorizontalPager(
+                state = pagerState,
+                contentPadding = PaddingValues(0.dp),
+                pageSpacing = 0.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp)
+            ) { page ->
+                val realIndex = (page % realCount + realCount) % realCount
+                val song = songs.getOrNull(realIndex) ?: return@HorizontalPager
+                val librarySong by database.song(song.id).collectAsStateWithLifecycle(initialValue = null)
+                val isLiked = librarySong?.song?.liked == true
+                val coroutineScope = rememberCoroutineScope()
+
+                val highResThumbnail = song.thumbnail.replace(Regex("w\\d+-h\\d+"), "w1200-h1200")
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight()
+                        .graphicsLayer {
+                            compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen
+                        }
+                        .drawWithCache {
+                            // Master 4-side transparency dissolve for the entire page (artwork + backdrop)
+                            val pageVMask = Brush.verticalGradient(
+                                0.00f to Color.Transparent,
+                                0.22f to Color.Black,
+                                0.78f to Color.Black,
+                                1.00f to Color.Transparent
+                            )
+                            val pageHMask = Brush.horizontalGradient(
+                                0.00f to Color.Transparent,
+                                0.08f to Color.Black,
+                                0.90f to Color.Black,
+                                1.00f to Color.Transparent
+                            )
+                            onDrawWithContent {
+                                drawContent()
+                                drawRect(brush = pageVMask, blendMode = BlendMode.DstIn)
+                                drawRect(brush = pageHMask, blendMode = BlendMode.DstIn)
+                            }
+                        }
+                ) {
+                    // Right-shifted artwork composite with dense 60dp edge blur and wide 30%-38% alpha dissolve on all 4 sides
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(0.78f)
+                            .align(Alignment.CenterEnd)
+                            .graphicsLayer {
+                                compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen
+                            }
+                            .drawWithCache {
+                                val hMask = Brush.horizontalGradient(
+                                    0.00f to Color.Transparent,
+                                    0.32f to Color.Black,
+                                    0.75f to Color.Black,
+                                    1.00f to Color.Transparent
+                                )
+                                val vMask = Brush.verticalGradient(
+                                    0.00f to Color.Transparent,
+                                    0.30f to Color.Black,
+                                    0.70f to Color.Black,
+                                    1.00f to Color.Transparent
+                                )
+                                onDrawWithContent {
+                                    drawContent()
+                                    drawRect(brush = hMask, blendMode = BlendMode.DstIn)
+                                    drawRect(brush = vMask, blendMode = BlendMode.DstIn)
+                                }
+                            }
+                    ) {
+                        // Layer 1 — Dense 60dp atmospheric blur
+                        AsyncImage(
+                            model = highResThumbnail,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .blur(radiusX = 60.dp, radiusY = 60.dp)
+                        )
+
+                        // Layer 2 — Sharp artwork centered safely within 35%-65%
+                        AsyncImage(
+                            model = highResThumbnail,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen
+                                }
+                                .drawWithCache {
+                                    val sharpHMask = Brush.horizontalGradient(
+                                        0.00f to Color.Transparent,
+                                        0.38f to Color.Black,
+                                        0.70f to Color.Black,
+                                        1.00f to Color.Transparent
+                                    )
+                                    val sharpVMask = Brush.verticalGradient(
+                                        0.00f to Color.Transparent,
+                                        0.35f to Color.Black,
+                                        0.65f to Color.Black,
+                                        1.00f to Color.Transparent
+                                    )
+                                    onDrawWithContent {
+                                        drawContent()
+                                        drawRect(brush = sharpHMask, blendMode = BlendMode.DstIn)
+                                        drawRect(brush = sharpVMask, blendMode = BlendMode.DstIn)
+                                    }
+                                }
+                        )
+                    }
+
+                    // Soft text backdrop wash for effortless readability without hard edges
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    0.00f to MaterialTheme.colorScheme.background.copy(alpha = 0.65f),
+                                    0.35f to MaterialTheme.colorScheme.background.copy(alpha = 0.30f),
+                                    0.65f to Color.Transparent
+                                )
+                            )
+                    )
+
+                    // Text and actions on the left
+                    Column(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(0.62f)
+                            .padding(start = 20.dp, top = 20.dp, bottom = 20.dp, end = 8.dp),
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "TRENDING NOW",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.5.sp,
+                                fontSize = 10.sp
+                            ),
+                            color = Color(0xFFF35F43)
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = song.title,
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Black
+                            ),
+                            color = Color.White,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = song.artists.joinToString { it.name },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Button(
+                                onClick = { onSongClick(song) },
+                                shape = RoundedCornerShape(24.dp),
+                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                    containerColor = Color.Transparent
+                                ),
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                modifier = Modifier
+                                    .height(40.dp)
+                                    .background(
+                                        brush = Brush.horizontalGradient(
+                                            colors = listOf(Color(0xFFE94E66), Color(0xFFF35F43))
+                                        ),
+                                        shape = RoundedCornerShape(24.dp)
+                                    )
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.play),
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Play",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = Color.White
+                                )
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    coroutineScope.launch(Dispatchers.IO) {
+                                        database.transaction {
+                                            val libSong = getSongByIdBlocking(song.id)
+                                            val s: SongEntity
+                                            if (libSong == null) {
+                                                insert(song.toMediaMetadata(), SongEntity::toggleLike)
+                                                s = song.toMediaMetadata().toSongEntity().let(SongEntity::toggleLike)
+                                            } else {
+                                                s = libSong.song.toggleLike()
+                                                update(s)
+                                            }
+                                            syncUtils.likeSong(s)
+                                        }
+                                    }
+                                },
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.12f))
+                            ) {
+                                Icon(
+                                    painter = painterResource(
+                                        if (isLiked) R.drawable.favorite else R.drawable.favorite_border
+                                    ),
+                                    contentDescription = "Like",
+                                    tint = if (isLiked) Color(0xFFE94E66) else Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Page indicator dots
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp, bottom = 12.dp)
+            ) {
+                repeat(realCount) { index ->
+                    val isSelected = currentRealPage == index
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 3.dp)
+                            .size(width = if (isSelected) 18.dp else 6.dp, height = 6.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isSelected) Color.White else Color.White.copy(alpha = 0.4f)
+                            )
+                    )
+                }
+            }
+        }
+    }
+}
+

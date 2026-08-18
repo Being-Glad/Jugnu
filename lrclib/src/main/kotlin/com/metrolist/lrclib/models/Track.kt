@@ -51,15 +51,37 @@ internal fun List<Track>.bestMatchingFor(
 ): Track? {
     if (isEmpty()) return null
 
-    if (duration == -1) {
-        if (trackName != null && artistName != null) {
-            return findBestMatch(trackName, artistName)
+    val validCandidates = if (trackName != null && artistName != null) {
+        val normalizedTrackName = trackName.trim().lowercase()
+        val normalizedArtistName = artistName.trim().lowercase()
+        this.filter { track ->
+            val tSim = calculateSimilarity(normalizedTrackName, track.trackName.trim().lowercase())
+            val aSim = calculateSimilarity(normalizedArtistName, track.artistName.trim().lowercase())
+            (tSim + aSim) / 2.0 > 0.4
         }
-        return firstOrNull { it.syncedLyrics != null } ?: firstOrNull()
+    } else {
+        this
     }
 
-    // Use relaxed matching for duration-based search
-    return bestMatchingForRelaxed(duration)
+    if (validCandidates.isEmpty()) return null
+
+    if (duration == -1) {
+        if (trackName != null && artistName != null) {
+            return validCandidates.findBestMatch(trackName, artistName)
+        }
+        return validCandidates.firstOrNull { it.syncedLyrics != null } ?: validCandidates.firstOrNull()
+    }
+
+    // Use relaxed matching for duration-based search on valid candidates
+    val match = validCandidates.bestMatchingForRelaxed(duration)
+    if (match != null) return match
+
+    // If no duration match, fallback to best similarity match
+    if (trackName != null && artistName != null) {
+        return validCandidates.findBestMatch(trackName, artistName)
+    }
+
+    return null
 }
 
 private fun List<Track>.findBestMatch(trackName: String, artistName: String): Track? {

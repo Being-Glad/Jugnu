@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -8,6 +8,12 @@ package com.metrolist.music.ui.player
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -29,6 +35,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -80,6 +87,7 @@ import com.metrolist.music.constants.PlayerHorizontalPadding
 import com.metrolist.music.constants.SeekExtraSeconds
 import com.metrolist.music.constants.SwipeThumbnailKey
 import com.metrolist.music.constants.ThumbnailCornerRadius
+import com.metrolist.music.constants.UseNewPlayerDesignKey
 import com.metrolist.music.listentogether.RoomRole
 import com.metrolist.music.ui.component.CastButton
 import com.metrolist.music.utils.rememberEnumPreference
@@ -201,6 +209,7 @@ fun Thumbnail(
     isPlayerExpanded: () -> Boolean = { true },
     isLandscape: Boolean = false,
     isListenTogetherGuest: Boolean = false,
+    onToggleLyrics: () -> Unit = {},
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
@@ -208,6 +217,7 @@ fun Thumbnail(
 
     // Collect states
     val mediaMetadata by playerConnection.mediaMetadata.collectAsStateWithLifecycle()
+    val isPlaying by playerConnection.isEffectivelyPlaying.collectAsStateWithLifecycle()
     val error by playerConnection.error.collectAsStateWithLifecycle()
     val queueTitle by playerConnection.queueTitle.collectAsStateWithLifecycle()
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsStateWithLifecycle()
@@ -219,6 +229,7 @@ fun Thumbnail(
     val swipeThumbnail = swipeThumbnailPref && !isListenTogetherGuest
     val hidePlayerThumbnail by rememberPreference(HidePlayerThumbnailKey, false)
     val cropAlbumArt by rememberPreference(CropAlbumArtKey, false)
+    val (useNewPlayerDesign) = rememberPreference(UseNewPlayerDesignKey, defaultValue = true)
     val playerBackground by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
         defaultValue = PlayerBackgroundStyle.DEFAULT
@@ -402,7 +413,10 @@ fun Thumbnail(
                                 isLandscape = isLandscape,
                                 isListenTogetherGuest = isListenTogetherGuest,
                                 currentMediaId = mediaMetadata?.id,
-                                currentMediaThumbnail = mediaMetadata?.thumbnailUrl
+                                currentMediaThumbnail = mediaMetadata?.thumbnailUrl,
+                                isPlaying = isPlaying,
+                                useNewPlayerDesign = useNewPlayerDesign,
+                                onToggleLyrics = onToggleLyrics
                             )
                         }
                     }
@@ -500,6 +514,9 @@ private fun ThumbnailItem(
     isListenTogetherGuest: Boolean = false,
     currentMediaId: String? = null,
     currentMediaThumbnail: String? = null,
+    isPlaying: Boolean = false,
+    useNewPlayerDesign: Boolean = false,
+    onToggleLyrics: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val incrementalSeekSkipEnabled by rememberPreference(SeekExtraSeconds, defaultValue = false)
@@ -524,6 +541,9 @@ private fun ThumbnailItem(
             }
             .pointerInput(Unit) {
                 detectTapGestures(
+                    onTap = {
+                        onToggleLyrics()
+                    },
                     onDoubleTap = { offset ->
                         if (isListenTogetherGuest) return@detectTapGestures
 
@@ -555,10 +575,19 @@ private fun ThumbnailItem(
             },
         contentAlignment = Alignment.Center
     ) {
+        // Determine the shape: new design = rounded square, old design = circle (vinyl)
+        val artShape = if (useNewPlayerDesign) {
+            RoundedCornerShape(28.dp)
+        } else if (hidePlayerThumbnail) {
+            RoundedCornerShape(dimensions.cornerRadius)
+        } else {
+            CircleShape
+        }
+
         Box(
             modifier = Modifier
                 .size(dimensions.thumbnailSize)
-                .clip(RoundedCornerShape(dimensions.cornerRadius))
+                .clip(artShape)
         ) {
             if (hidePlayerThumbnail) {
                 HiddenThumbnailPlaceholder(textBackgroundColor = textBackgroundColor)
@@ -571,7 +600,9 @@ private fun ThumbnailItem(
 
                 ThumbnailImage(
                     artworkUri = artworkUriToUse,
-                    cropArtwork = cropAlbumArt
+                    cropArtwork = cropAlbumArt,
+                    isPlaying = isPlaying,
+                    useNewPlayerDesign = useNewPlayerDesign
                 )
             }
             
@@ -616,17 +647,12 @@ private fun HiddenThumbnailPlaceholder(
 private fun ThumbnailImage(
     artworkUri: String?,
     cropArtwork: Boolean,
+    isPlaying: Boolean,
+    useNewPlayerDesign: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .graphicsLayer {
-                // Use offscreen compositing for hardware acceleration during animations
-                compositingStrategy = CompositingStrategy.Offscreen
-            }
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-    ) {
+    if (useNewPlayerDesign) {
+        // Static rounded square album art — no rotation, no vinyl center dot
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(artworkUri)
@@ -635,9 +661,55 @@ private fun ThumbnailImage(
                 .networkCachePolicy(CachePolicy.ENABLED)
                 .build(),
             contentDescription = null,
-            contentScale = if (cropArtwork) ContentScale.Crop else ContentScale.Fit,
-            modifier = Modifier.fillMaxSize()
+            contentScale = if (cropArtwork) ContentScale.Crop else ContentScale.Crop,
+            modifier = modifier.fillMaxSize()
         )
+    } else {
+        // Legacy vinyl spinning disc
+        val infiniteTransition = rememberInfiniteTransition(label = "rotation")
+        val rotationAngle by if (isPlaying) {
+            infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 360f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(15000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "angle"
+            )
+        } else {
+            remember { mutableStateOf(0f) }
+        }
+
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    rotationZ = rotationAngle
+                    compositingStrategy = CompositingStrategy.Offscreen
+                }
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(artworkUri)
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    .networkCachePolicy(CachePolicy.ENABLED)
+                    .build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+            // Vinyl center dot
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .align(Alignment.Center)
+                    .background(Color(0xFF070809), CircleShape)
+            )
+        }
     }
 }
 

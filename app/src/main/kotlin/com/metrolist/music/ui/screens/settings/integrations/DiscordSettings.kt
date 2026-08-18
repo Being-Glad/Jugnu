@@ -60,6 +60,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -76,6 +77,7 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.LocalPlayerConnection
+import com.metrolist.music.ui.utils.glassCard
 import com.metrolist.music.R
 import com.metrolist.music.constants.DiscordActivityNameKey
 import com.metrolist.music.constants.DiscordActivityTypeKey
@@ -237,12 +239,13 @@ fun DiscordSettings(
             Card(
                 colors =
                     CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        containerColor = Color.Transparent,
                     ),
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                        .padding(bottom = 16.dp)
+                        .glassCard(),
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
@@ -286,12 +289,13 @@ fun DiscordSettings(
             shape = RoundedCornerShape(28.dp),
             colors =
                 CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    containerColor = Color.Transparent,
                 ),
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp),
+                    .padding(bottom = 16.dp)
+                    .glassCard(cornerRadius = 28.dp),
         ) {
             Row(
                 modifier =
@@ -929,10 +933,12 @@ fun RichPresence(
     }
 
     Surface(
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = Color.Transparent,
         shape = MaterialTheme.shapes.medium,
-        shadowElevation = 6.dp,
-        modifier = Modifier.fillMaxWidth(),
+        shadowElevation = 0.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .glassCard(shape = MaterialTheme.shapes.medium),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),

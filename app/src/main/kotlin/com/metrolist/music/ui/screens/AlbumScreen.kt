@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -30,7 +30,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ContainedLoadingIndicator
+import com.metrolist.music.ui.component.MetrolistContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -205,10 +205,10 @@ fun AlbumScreen(
                                 .size(240.dp)
                                 .shadow(
                                     elevation = 24.dp,
-                                    shape = RoundedCornerShape(3.dp),
+                                    shape = RoundedCornerShape(12.dp),
                                     spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
                                 ),
-                        shape = RoundedCornerShape(3.dp),
+                        shape = RoundedCornerShape(12.dp),
                     ) {
                         AsyncImage(
                             model = albumWithSongs.album.thumbnailUrl?.resize(1080, 1080),
@@ -513,7 +513,7 @@ fun AlbumScreen(
                             .padding(32.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    ContainedLoadingIndicator()
+                    MetrolistContainedLoadingIndicator()
                 }
             }
         }

@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -13,13 +13,15 @@ import com.metrolist.music.models.MediaMetadata
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.withContext
 
+import com.metrolist.music.models.toMediaMetadata
+
 class YouTubePlaylistQueue(
     private val playlistId: String,
     private val playlistTitle: String? = null,
     private val initialSongs: List<SongItem> = emptyList(),
     private val initialContinuation: String? = null,
     private val startIndex: Int = 0,
-    override val preloadItem: MediaMetadata? = null,
+    override val preloadItem: MediaMetadata? = initialSongs.getOrNull(startIndex)?.toMediaMetadata(),
 ) : Queue {
     private var continuation: String? = initialContinuation
     private var retryCount = 0

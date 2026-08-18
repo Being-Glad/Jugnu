@@ -1,10 +1,11 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
 package com.metrolist.music.ui.component
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialogDefaults
@@ -40,8 +42,14 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.window.DialogWindowProvider
+import android.os.Build
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,7 +68,11 @@ import androidx.compose.ui.window.DialogProperties
 import com.metrolist.music.LocalNavController
 import com.metrolist.music.R
 import com.metrolist.music.ui.screens.settings.AccountSettings
+import com.metrolist.music.ui.utils.glassCard
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.metrolist.music.constants.PureBlackKey
+import com.metrolist.music.utils.rememberPreference
 
 @Composable
 fun DefaultDialog(
@@ -76,11 +88,29 @@ fun DefaultDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
+        BlurDialogBackground()
+
+        val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
+        val isSystemDark = isSystemInDarkTheme()
+        val shape = RoundedCornerShape(28.dp)
+        val dialogBg = if (pureBlack && isSystemDark) {
+            Color.Black
+        } else if (isSystemDark) {
+            Color(0xFF16171B)
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        }
         Surface(
-            modifier = Modifier.padding(24.dp),
-            shape = AlertDialogDefaults.shape,
-            color = AlertDialogDefaults.containerColor,
-            tonalElevation = AlertDialogDefaults.TonalElevation,
+            modifier = Modifier
+                .padding(24.dp)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
+                    shape = shape
+                ),
+            shape = shape,
+            color = dialogBg,
+            tonalElevation = 6.dp,
         ) {
             Column(
                 horizontalAlignment = horizontalAlignment,
@@ -150,6 +180,7 @@ fun AccountSettingsDialog(
                 dismissOnClickOutside = true,
             ),
     ) {
+        BlurDialogBackground()
         Box(
             modifier =
                 Modifier
@@ -161,15 +192,29 @@ fun AccountSettingsDialog(
                     },
             contentAlignment = Alignment.TopCenter,
         ) {
+            val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
+            val isSystemDark = isSystemInDarkTheme()
+            val shape = RoundedCornerShape(28.dp)
+            val dialogBg = if (pureBlack && isSystemDark) {
+                Color.Black
+            } else if (isSystemDark) {
+                Color(0xFF16171B)
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerHigh
+            }
             Surface(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .padding(top = 72.dp, start = 16.dp, end = 16.dp)
-                        .clip(RoundedCornerShape(28.dp)),
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp,
+                        .border(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
+                            shape = shape
+                        ),
+                shape = shape,
+                color = dialogBg,
+                tonalElevation = 6.dp,
             ) {
                 AccountSettings(
                     navController = navController,
@@ -249,11 +294,28 @@ fun ListDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
+        BlurDialogBackground()
+        val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
+        val isSystemDark = isSystemInDarkTheme()
+        val shape = RoundedCornerShape(28.dp)
+        val dialogBg = if (pureBlack && isSystemDark) {
+            Color.Black
+        } else if (isSystemDark) {
+            Color(0xFF16171B)
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        }
         Surface(
-            modifier = Modifier.padding(24.dp),
-            shape = AlertDialogDefaults.shape,
-            color = AlertDialogDefaults.containerColor,
-            tonalElevation = AlertDialogDefaults.TonalElevation,
+            modifier = Modifier
+                .padding(24.dp)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
+                    shape = shape
+                ),
+            shape = shape,
+            color = dialogBg,
+            tonalElevation = 6.dp,
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -422,5 +484,21 @@ fun TextFieldDialog(
 
             extraContent?.invoke()
         }
+    }
+}
+
+@Composable
+fun BlurDialogBackground() {
+    val view = LocalView.current
+    DisposableEffect(view) {
+        val window = (view.parent as? DialogWindowProvider)?.window
+        if (window != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+            val params = window.attributes
+            params.blurBehindRadius = 80
+            window.attributes = params
+            window.setBackgroundBlurRadius(80)
+        }
+        onDispose {}
     }
 }

@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -32,6 +32,7 @@ import com.metrolist.music.di.ApplicationScope
 import com.metrolist.music.extensions.toEnum
 import com.metrolist.music.extensions.toInetSocketAddress
 import com.metrolist.music.utils.CrashHandler
+import com.metrolist.music.utils.YTPlayerUtils
 import com.metrolist.music.utils.cipher.CipherDeobfuscator
 import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.reportException
@@ -80,6 +81,11 @@ class App :
 
         // Initialize cipher deobfuscator for WEB_REMIX streaming
         CipherDeobfuscator.initialize(this)
+
+        // Pre-warm playback pipeline (signature timestamp, player.js, CipherWebView) in background
+        applicationScope.launch(Dispatchers.IO) {
+            YTPlayerUtils.prewarm()
+        }
 
         Timber.plant(Timber.DebugTree())
 
@@ -178,7 +184,7 @@ class App :
                 .map { it[VisitorDataKey] }
                 .distinctUntilChanged()
                 .collect { visitorData ->
-                    YouTube.visitorData = visitorData?.takeIf { it != "null" }
+                    val finalVisitorData = visitorData?.takeIf { it != "null" }
                         ?: YouTube.visitorData().getOrNull()?.also { newVisitorData ->
                             try {
                                 dataStore.edit { settings ->
@@ -189,6 +195,18 @@ class App :
                                 reportException(e)
                             }
                         }
+                    YouTube.visitorData = finalVisitorData
+
+                    if (finalVisitorData != null) {
+                        launch(Dispatchers.Default) {
+                            try {
+                                Timber.d("Pre-warming PoToken session...")
+                                com.metrolist.music.utils.YTPlayerUtils.prewarm(finalVisitorData)
+                            } catch (e: Exception) {
+                                Timber.e(e, "PoToken pre-warm failed")
+                            }
+                        }
+                    }
                 }
         }
 
@@ -266,9 +284,7 @@ class App :
     private var cachedCoilCacheSize: Int? = null
 
     override fun newImageLoader(context: PlatformContext): ImageLoader {
-        val cacheSize = cachedCoilCacheSize ?: runBlocking {
-            dataStore.data.map { it[MaxImageCacheSizeKey] ?: 512 }.first()
-        }
+        val cacheSize = cachedCoilCacheSize ?: 512
         return ImageLoader
             .Builder(this)
             .apply {

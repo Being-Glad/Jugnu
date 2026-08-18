@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -22,6 +22,17 @@ val PureBlackKey = booleanPreferencesKey("pureBlack")
 val PureBlackMiniPlayerKey = booleanPreferencesKey("pureBlackMiniPlayer")
 val MiniPlayerOutlineKey = booleanPreferencesKey("miniPlayerOutline")
 val MiniPlayerBackgroundStyleKey = stringPreferencesKey("miniPlayerBackgroundStyle")
+val ThemeStyleKey = stringPreferencesKey("themeStyle")
+
+val GlassStyleKey = stringPreferencesKey("glassStyle")
+val GlassOpacityKey = floatPreferencesKey("glassOpacity")
+
+enum class GlassStyle {
+    LIQUID,
+    STANDARD,
+    CUSTOM,
+}
+
 
 enum class MiniPlayerBackgroundStyle {
     DEFAULT,
@@ -126,6 +137,7 @@ val ShuffleModeKey = booleanPreferencesKey("shuffleMode")
 val SkipSilenceKey = booleanPreferencesKey("skipSilence")
 val SkipSilenceInstantKey = booleanPreferencesKey("skipSilenceInstant")
 val AudioNormalizationKey = booleanPreferencesKey("audioNormalization")
+val ValidateStreamsKey = booleanPreferencesKey("validateStreams")
 
 val LoudnessLevelKey = stringPreferencesKey("loudnessLevel")
 
@@ -270,6 +282,7 @@ val ShowDownloadedPlaylistKey = booleanPreferencesKey("show_downloaded_playlist"
 val ShowTopPlaylistKey = booleanPreferencesKey("show_top_playlist")
 val ShowCachedPlaylistKey = booleanPreferencesKey("show_cached_playlist")
 val ShowUploadedPlaylistKey = booleanPreferencesKey("show_uploaded_playlist")
+val ShowTrendingArtistsKey = booleanPreferencesKey("showTrendingArtists")
 
 enum class LibraryViewType {
     LIST,
@@ -473,6 +486,7 @@ CRITICAL RULES:
 val LyricsGlowEffectKey = booleanPreferencesKey("lyricsGlowEffect")
 
 val LyricsRomanizeList = stringPreferencesKey("lyricsRomanizeList")
+val LyricsDisplayPresetKey = stringPreferencesKey("lyricsDisplayPreset")
 val LyricsAnimationStyleKey = stringPreferencesKey("lyricsAnimationStyle")
 
 enum class LyricsAnimationStyle {

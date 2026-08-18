@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -74,6 +74,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -100,6 +101,7 @@ import com.metrolist.music.listentogether.UserInfo
 import com.metrolist.music.ui.component.DefaultDialog
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.utils.backToMain
+import com.metrolist.music.ui.utils.glassCard
 import com.metrolist.music.utils.rememberPreference
 import kotlinx.coroutines.launch
 import androidx.compose.material3.IconButton as MaterialIconButton
@@ -515,6 +517,13 @@ private fun ConnectionStatusCard(
     onDisconnect: () -> Unit,
     onReconnect: () -> Unit,
 ) {
+    val containerColor =
+        when (connectionState) {
+            ConnectionState.CONNECTED -> MaterialTheme.colorScheme.primaryContainer
+            ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> MaterialTheme.colorScheme.secondaryContainer
+            ConnectionState.ERROR -> MaterialTheme.colorScheme.errorContainer
+            ConnectionState.DISCONNECTED -> MaterialTheme.colorScheme.surfaceContainerHigh
+        }
     Card(
         modifier =
             Modifier
@@ -525,17 +534,12 @@ private fun ConnectionStatusCard(
                             dampingRatio = Spring.DampingRatioMediumBouncy,
                             stiffness = Spring.StiffnessLow,
                         ),
-                ),
+                )
+                .glassCard(cornerRadius = 20.dp, backgroundColor = containerColor.copy(alpha = 0.88f)),
         shape = RoundedCornerShape(20.dp),
         colors =
             CardDefaults.cardColors(
-                containerColor =
-                    when (connectionState) {
-                        ConnectionState.CONNECTED -> MaterialTheme.colorScheme.primaryContainer
-                        ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> MaterialTheme.colorScheme.secondaryContainer
-                        ConnectionState.ERROR -> MaterialTheme.colorScheme.errorContainer
-                        ConnectionState.DISCONNECTED -> MaterialTheme.colorScheme.surfaceContainerHigh
-                    },
+                containerColor = Color.Transparent,
             ),
     ) {
         Column(
@@ -651,11 +655,13 @@ private fun RoomStatusCard(
     context: Context,
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .glassCard(cornerRadius = 24.dp),
         shape = RoundedCornerShape(24.dp),
         colors =
             CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                containerColor = Color.Transparent,
             ),
     ) {
         Column(
@@ -697,7 +703,7 @@ private fun RoomStatusCard(
                 Spacer(modifier = Modifier.height(16.dp))
                 val inviteLink =
                     remember(roomCode) {
-                        "https://metrolist.cc/listen?code=$roomCode"
+                        "jugnu://listen?code=$roomCode"
                     }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -753,11 +759,13 @@ private fun ConnectedUsersSection(
     onUserClick: (String, String) -> Unit,
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .glassCard(cornerRadius = 20.dp),
         shape = RoundedCornerShape(20.dp),
         colors =
             CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                containerColor = Color.Transparent,
             ),
     ) {
         Column(
@@ -899,11 +907,13 @@ private fun PendingJoinRequestsSection(
     onReject: (String) -> Unit,
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .glassCard(cornerRadius = 20.dp),
         shape = RoundedCornerShape(20.dp),
         colors =
             CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                containerColor = Color.Transparent,
             ),
     ) {
         Column(
@@ -978,11 +988,13 @@ private fun PendingSuggestionsSection(
     onReject: (String) -> Unit,
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .glassCard(cornerRadius = 20.dp),
         shape = RoundedCornerShape(20.dp),
         colors =
             CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                containerColor = Color.Transparent,
             ),
     ) {
         Column(
@@ -1065,11 +1077,13 @@ private fun JoinCreateRoomSection(
     onFieldFocused: () -> Unit = {},
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .glassCard(cornerRadius = 24.dp),
         shape = RoundedCornerShape(24.dp),
         colors =
             CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                containerColor = Color.Transparent,
             ),
     ) {
         Column(
@@ -1281,11 +1295,12 @@ private fun SettingsLinkCard(onClick: () -> Unit) {
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick),
+                .clickable(onClick = onClick)
+                .glassCard(cornerRadius = 16.dp),
         shape = RoundedCornerShape(16.dp),
         colors =
             CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                containerColor = Color.Transparent,
             ),
     ) {
         Row(

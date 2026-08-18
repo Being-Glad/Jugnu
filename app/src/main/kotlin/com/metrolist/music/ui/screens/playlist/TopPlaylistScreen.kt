@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -38,6 +38,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -243,6 +245,7 @@ fun TopPlaylistScreen(
     }
 
     val state = rememberLazyListState()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -250,6 +253,7 @@ fun TopPlaylistScreen(
         LazyColumn(
             state = state,
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
+            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         ) {
             if (songs != null) {
                 if (songs!!.isEmpty()) {
@@ -408,6 +412,11 @@ fun TopPlaylistScreen(
         )
 
         TopAppBar(
+            scrollBehavior = scrollBehavior,
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = Color.Transparent,
+                scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.9f),
+            ),
             title = {
                 when {
                     inSelectMode -> {
@@ -550,10 +559,10 @@ private fun TopPlaylistHeader(
                     .size(240.dp)
                     .shadow(
                         elevation = 24.dp,
-                        shape = RoundedCornerShape(3.dp),
+                        shape = RoundedCornerShape(12.dp),
                         spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
                     ),
-                shape = RoundedCornerShape(3.dp)
+                shape = RoundedCornerShape(12.dp)
             ) {
                 AsyncImage(
                     model = songs[0].thumbnailUrl,

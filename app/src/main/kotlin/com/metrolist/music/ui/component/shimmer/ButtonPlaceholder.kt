@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -21,6 +21,6 @@ fun ButtonPlaceholder(modifier: Modifier = Modifier) {
         modifier
             .height(ButtonDefaults.MinHeight)
             .clip(RoundedCornerShape(50))
-            .background(MaterialTheme.colorScheme.onSurface),
+            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.08f)),
     )
 }

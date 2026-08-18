@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -17,7 +17,7 @@ const val CONTENT_TYPE_ARTIST = 3
 const val CONTENT_TYPE_ALBUM = 4
 const val CONTENT_TYPE_PLAYLIST = 5
 
-val NavigationBarHeight = 80.dp
+val NavigationBarHeight = 64.dp
 val SlimNavBarHeight = 64.dp
 val MiniPlayerHeight = 64.dp
 val MinMiniPlayerHeight = 16.dp
@@ -29,11 +29,11 @@ val ListItemHeight = 64.dp
 val SuggestionItemHeight = 56.dp
 val SearchFilterHeight = 48.dp
 val ListThumbnailSize = 48.dp
-val SmallGridThumbnailHeight = 104.dp
-val GridThumbnailHeight = 128.dp
-val AlbumThumbnailSize = 144.dp
+val SmallGridThumbnailHeight = 84.dp
+val GridThumbnailHeight = 96.dp
+val AlbumThumbnailSize = 128.dp
 
-val ThumbnailCornerRadius = 3.dp
+val ThumbnailCornerRadius = 16.dp
 
 val PlayerHorizontalPadding = 32.dp
 

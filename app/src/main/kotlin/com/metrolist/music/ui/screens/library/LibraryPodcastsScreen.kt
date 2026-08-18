@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -9,6 +9,10 @@ import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.graphics.Color
+import com.metrolist.music.constants.PureBlackKey
+import com.metrolist.music.ui.utils.glassCard
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,6 +29,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -312,12 +318,13 @@ fun LibraryPodcastsScreen(
                         PodcastArtistChannelItem(
                             thumbnailUrl = channel.thumbnail,
                             channelName = channel.title,
+                            onClick = {
+                                navController.navigate("artist/${channel.id}")
+                            },
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .clickable {
-                                        navController.navigate("artist/${channel.id}")
-                                    }.animateItem(),
+                                    .animateItem(),
                         )
                     }
 
@@ -499,65 +506,89 @@ private fun AutoPlaylistCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+    val isSystemDark = isSystemInDarkTheme()
+    val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
+    val isPureBlack = pureBlack && isSystemDark
+    val shape = RoundedCornerShape(20.dp)
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(shape)
+            .clickable(onClick = onClick)
+            .then(
+                if (isPureBlack) {
+                    Modifier.background(Color.Black, shape)
+                } else {
+                    Modifier.glassCard(shape = shape)
+                }
+            ),
+        shape = shape,
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Box(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier =
                 Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(ThumbnailCornerRadius))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center,
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            if (thumbnailUrl != null) {
-                AsyncImage(
-                    model = thumbnailUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier =
-                        Modifier
-                            .size(56.dp)
-                            .clip(RoundedCornerShape(ThumbnailCornerRadius)),
+            Box(
+                modifier =
+                    Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(ThumbnailCornerRadius))
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (thumbnailUrl != null) {
+                    AsyncImage(
+                        model = thumbnailUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier =
+                            Modifier
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(ThumbnailCornerRadius)),
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(R.drawable.queue_music),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-            } else {
-                Icon(
-                    painter = painterResource(R.drawable.queue_music),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(28.dp),
+                Text(
+                    text =
+                        buildString {
+                            append(stringResource(R.string.auto_playlist))
+                            if (!episodeCount.isNullOrBlank()) {
+                                append(" • ")
+                                append(episodeCount)
+                            }
+                        },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
-        }
-
-        Spacer(Modifier.width(12.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text =
-                    buildString {
-                        append(stringResource(R.string.auto_playlist))
-                        if (!episodeCount.isNullOrBlank()) {
-                            append(" • ")
-                            append(episodeCount)
-                        }
-                    },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
         }
     }
 }
@@ -570,66 +601,91 @@ private fun PodcastEpisodePlaylistItem(
     onMenuClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier =
-            modifier
-                .clickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+    val isSystemDark = isSystemInDarkTheme()
+    val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
+    val isPureBlack = pureBlack && isSystemDark
+    val shape = RoundedCornerShape(20.dp)
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(shape)
+            .clickable(onClick = onClick)
+            .then(
+                if (isPureBlack) {
+                    Modifier.background(Color.Black, shape)
+                } else {
+                    Modifier.glassCard(shape = shape)
+                }
+            ),
+        shape = shape,
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Box(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier =
                 Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(ThumbnailCornerRadius))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center,
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            if (podcast.thumbnailUrl != null) {
-                AsyncImage(
-                    model = podcast.thumbnailUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier =
-                        Modifier
-                            .size(56.dp)
-                            .clip(RoundedCornerShape(ThumbnailCornerRadius)),
-                )
-            } else {
-                Icon(
-                    painter = painterResource(R.drawable.queue_music),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(28.dp),
-                )
+            Box(
+                modifier =
+                    Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(ThumbnailCornerRadius))
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (podcast.thumbnailUrl != null) {
+                    AsyncImage(
+                        model = podcast.thumbnailUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier =
+                            Modifier
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(ThumbnailCornerRadius)),
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(R.drawable.queue_music),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
             }
-        }
 
-        Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(12.dp))
 
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = podcast.title,
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (!podcast.author.isNullOrBlank()) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = podcast.author,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = podcast.title,
+                    style = MaterialTheme.typography.bodyLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                if (!podcast.author.isNullOrBlank()) {
+                    Text(
+                        text = podcast.author,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
-        }
 
-        IconButton(onClick = onMenuClick) {
-            Icon(
-                painter = painterResource(R.drawable.more_vert),
-                contentDescription = stringResource(R.string.more_options),
-            )
+            IconButton(onClick = onMenuClick) {
+                Icon(
+                    painter = painterResource(R.drawable.more_vert),
+                    contentDescription = stringResource(R.string.more_options),
+                )
+            }
         }
     }
 }
@@ -743,30 +799,58 @@ private fun PodcastEpisodePlaylistMenu(
 private fun PodcastArtistChannelItem(
     thumbnailUrl: String?,
     channelName: String,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+    val isSystemDark = isSystemInDarkTheme()
+    val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
+    val isPureBlack = pureBlack && isSystemDark
+    val shape = RoundedCornerShape(20.dp)
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(shape)
+            .clickable(onClick = onClick)
+            .then(
+                if (isPureBlack) {
+                    Modifier.background(Color.Black, shape)
+                } else {
+                    Modifier.glassCard(shape = shape)
+                }
+            ),
+        shape = shape,
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        AsyncImage(
-            model = thumbnailUrl,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier =
-                Modifier
-                    .size(56.dp)
-                    .clip(CircleShape),
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            AsyncImage(
+                model = thumbnailUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier =
+                    Modifier
+                        .size(56.dp)
+                        .clip(CircleShape),
+            )
 
-        Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(12.dp))
 
-        Text(
-            text = channelName,
-            style = MaterialTheme.typography.bodyLarge,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
+            Text(
+                text = channelName,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }

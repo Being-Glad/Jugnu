@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -55,6 +55,7 @@ import com.metrolist.music.constants.OpenRouterBaseUrlKey
 import com.metrolist.music.constants.OpenRouterModelKey
 import com.metrolist.music.constants.TranslateLanguageKey
 import com.metrolist.music.constants.TranslateModeKey
+import com.metrolist.music.ui.component.DefaultDialog
 import com.metrolist.music.ui.component.EnumDialog
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
@@ -172,106 +173,104 @@ fun AiSettings(navController: NavController) {
     var showSystemPromptDialog by rememberSaveable { mutableStateOf(false) }
 
     if (showProviderHelpDialog) {
-        AlertDialog(
-            onDismissRequest = { showProviderHelpDialog = false },
-            confirmButton = {
+        DefaultDialog(
+            onDismiss = { showProviderHelpDialog = false },
+            icon = { Icon(painterResource(R.drawable.info), null) },
+            title = { Text(stringResource(R.string.ai_provider_help)) },
+            buttons = {
                 TextButton(onClick = { showProviderHelpDialog = false }) {
                     Text(stringResource(android.R.string.ok))
                 }
-            },
-            icon = { Icon(painterResource(R.drawable.info), null) },
-            title = { Text(stringResource(R.string.ai_provider_help)) },
-            text = {
-                Column {
-                    providerHelpText.forEach { (provider, help) ->
-                        if (help.isNotEmpty()) {
-                            val primaryColor = MaterialTheme.colorScheme.primary
-                            val annotatedString =
-                                buildAnnotatedString {
-                                    append("$provider: ")
-                                    // Extract URL from text
-                                    val urlRegex = "https?://[^\\s]+".toRegex()
-                                    val match = urlRegex.find(help)
-                                    if (match != null) {
-                                        val url = match.value
-                                        val beforeUrl = help.substring(0, match.range.first)
-                                        val afterUrl = help.substring(match.range.last + 1)
+            }
+        ) {
+            Column {
+                providerHelpText.forEach { (provider, help) ->
+                    if (help.isNotEmpty()) {
+                        val primaryColor = MaterialTheme.colorScheme.primary
+                        val annotatedString =
+                            buildAnnotatedString {
+                                append("$provider: ")
+                                // Extract URL from text
+                                val urlRegex = "https?://[^\\s]+".toRegex()
+                                val match = urlRegex.find(help)
+                                if (match != null) {
+                                    val url = match.value
+                                    val beforeUrl = help.substring(0, match.range.first)
+                                    val afterUrl = help.substring(match.range.last + 1)
 
-                                        append(beforeUrl)
-                                        val linkStart = length
-                                        append(url)
-                                        val linkEnd = length
-                                        append(afterUrl)
+                                    append(beforeUrl)
+                                    val linkStart = length
+                                    append(url)
+                                    val linkEnd = length
+                                    append(afterUrl)
 
-                                        addLink(
-                                            LinkAnnotation.Url(
-                                                url = url,
-                                                styles =
-                                                    TextLinkStyles(
-                                                        style =
-                                                            SpanStyle(
-                                                                color = primaryColor,
-                                                                textDecoration = TextDecoration.Underline,
-                                                            ),
-                                                    ),
-                                            ),
-                                            start = linkStart,
-                                            end = linkEnd,
-                                        )
-                                    } else {
-                                        append(help)
-                                    }
+                                    addLink(
+                                        LinkAnnotation.Url(
+                                            url = url,
+                                            styles =
+                                                TextLinkStyles(
+                                                    style =
+                                                        SpanStyle(
+                                                            color = primaryColor,
+                                                            textDecoration = TextDecoration.Underline,
+                                                        ),
+                                                ),
+                                        ),
+                                        start = linkStart,
+                                        end = linkEnd,
+                                    )
+                                } else {
+                                    append(help)
                                 }
+                            }
 
-                            Text(
-                                text = annotatedString,
-                                style =
-                                    MaterialTheme.typography.bodyMedium.copy(
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                    ),
-                                modifier = Modifier.padding(vertical = 4.dp),
-                            )
-                        }
+                        Text(
+                            text = annotatedString,
+                            style =
+                                MaterialTheme.typography.bodyMedium.copy(
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                ),
+                            modifier = Modifier.padding(vertical = 4.dp),
+                        )
                     }
                 }
-            },
-        )
+            }
+        }
     }
 
     if (showTranslateModeHelpDialog) {
-        AlertDialog(
-            onDismissRequest = { showTranslateModeHelpDialog = false },
-            confirmButton = {
+        DefaultDialog(
+            onDismiss = { showTranslateModeHelpDialog = false },
+            icon = { Icon(painterResource(R.drawable.info), null) },
+            title = { Text(stringResource(R.string.ai_translation_mode)) },
+            buttons = {
                 TextButton(onClick = { showTranslateModeHelpDialog = false }) {
                     Text(stringResource(android.R.string.ok))
                 }
-            },
-            icon = { Icon(painterResource(R.drawable.info), null) },
-            title = { Text(stringResource(R.string.ai_translation_mode)) },
-            text = {
-                Column {
-                    Text(
-                        text = "${stringResource(R.string.ai_translation_literal)}:",
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
-                    Text(
-                        text = stringResource(R.string.ai_translation_literal_desc),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(bottom = 12.dp),
-                    )
+            }
+        ) {
+            Column {
+                Text(
+                    text = "${stringResource(R.string.ai_translation_literal)}:",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                Text(
+                    text = stringResource(R.string.ai_translation_literal_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 12.dp),
+                )
 
-                    Text(
-                        text = "${stringResource(R.string.ai_translation_transcribed)}:",
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                    Text(
-                        text = stringResource(R.string.ai_translation_transcribed_desc),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-            },
-        )
+                Text(
+                    text = "${stringResource(R.string.ai_translation_transcribed)}:",
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    text = stringResource(R.string.ai_translation_transcribed_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
     }
 
     if (showProviderDialog) {

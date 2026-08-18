@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -13,13 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,17 +26,15 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.launch
-import timber.log.Timber
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -49,7 +43,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.metrolist.innertube.YouTube
@@ -68,12 +64,13 @@ import com.metrolist.music.ui.component.DefaultDialog
 import com.metrolist.music.ui.component.InfoLabel
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
-import com.metrolist.music.ui.component.PreferenceEntry
 import com.metrolist.music.ui.component.TextFieldDialog
 import com.metrolist.music.utils.Updater
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.AccountSettingsViewModel
 import com.metrolist.music.viewmodels.HomeViewModel
+import kotlinx.coroutines.launch
+import timber.log.Timber
 
 @Composable
 fun AccountSettings(
@@ -109,19 +106,22 @@ fun AccountSettings(
 
     Column(
         modifier = Modifier
-            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .background(Color.Transparent)
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 8.dp, end = 8.dp),
+                .padding(start = 8.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = stringResource(id = R.string.app_name),
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                ),
                 modifier = Modifier.padding(start = 4.dp)
             )
             Spacer(modifier = Modifier.weight(1f))
@@ -130,7 +130,7 @@ fun AccountSettings(
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(8.dp))
 
         // Logout confirmation dialog
         if (showLogoutDialog) {
@@ -179,6 +179,47 @@ fun AccountSettings(
             )
         }
 
+        if (showToken) {
+            val text = """
+                ***INNERTUBE COOKIE*** =$innerTubeCookie
+                ***VISITOR DATA*** =$visitorData
+                ***DATASYNC ID*** =$dataSyncId
+                ***ACCOUNT NAME*** =$accountNamePref
+                ***ACCOUNT EMAIL*** =$accountEmail
+                ***ACCOUNT CHANNEL HANDLE*** =$accountChannelHandle
+            """.trimIndent()
+
+            DefaultDialog(
+                onDismiss = { showToken = false },
+                title = { Text(stringResource(R.string.token_shown)) },
+                buttons = {
+                    TextButton(
+                        onClick = {
+                            showToken = false
+                            showTokenEditor = true
+                        }
+                    ) {
+                        Text(stringResource(R.string.edit))
+                    }
+                    TextButton(
+                        onClick = {
+                            showToken = false
+                        }
+                    ) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+            ) {
+                Text(
+                    text = text,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+
         if (showTokenEditor) {
             val text = """
                 ***INNERTUBE COOKIE*** =$innerTubeCookie
@@ -209,9 +250,6 @@ fun AccountSettings(
                             it.startsWith("***ACCOUNT CHANNEL HANDLE*** =") -> accountChannelHandleValue = it.substringAfter("=")
                         }
                     }
-                    // Write all credentials atomically to DataStore and wait for completion
-                    // before restarting, preventing the race condition where the process
-                    // would be killed before async DataStore coroutines finished writing.
                     accountSettingsViewModel.saveTokenAndRestart(
                         context = context,
                         cookie = cookie,
@@ -226,10 +264,6 @@ fun AccountSettings(
                 singleLine = false,
                 maxLines = 20,
                 isInputValid = { fullText ->
-                    // Extract the cookie value from the formatted template line,
-                    // then validate it separately — avoids the bug where parseCookieString
-                    // received the entire multi-line template and failed to find "SAPISID"
-                    // as a key because the "***INNERTUBE COOKIE*** =" prefix shadowed it.
                     val cookieLine = fullText.lines()
                         .find { it.startsWith("***INNERTUBE COOKIE*** =") }
                     val cookieValue = cookieLine?.substringAfter("***INNERTUBE COOKIE*** =")?.trim() ?: ""
@@ -242,30 +276,37 @@ fun AccountSettings(
             )
         }
 
+        // Account Sign In / Profile Item
         Material3SettingsGroup(
             items = listOf(
                 Material3SettingsItem(
                     title = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (isLoggedIn && accountImageUrl != null) {
-                                AsyncImage(
-                                    model = accountImageUrl,
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.size(40.dp).clip(CircleShape)
-                                )
-
-                                Spacer(Modifier.width(12.dp))
+                        Text(
+                            text = if (isLoggedIn) accountName.ifEmpty { stringResource(R.string.account) } else stringResource(R.string.login)
+                        )
+                    },
+                    description = {
+                        Text(
+                            text = if (isLoggedIn) {
+                                accountEmail.ifEmpty { stringResource(R.string.signed_in_ytm) }
+                            } else {
+                                stringResource(R.string.account_login_desc)
                             }
-
-                            Text(
-                                text = if (isLoggedIn) accountName else stringResource(R.string.login),
+                        )
+                    },
+                    leadingContent = if (isLoggedIn && accountImageUrl != null) {
+                        {
+                            AsyncImage(
+                                model = accountImageUrl,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
                             )
                         }
-                    },
-                    icon = if (!isLoggedIn) painterResource(R.drawable.login) else null,
+                    } else null,
+                    icon = if (!isLoggedIn || accountImageUrl == null) painterResource(R.drawable.login) else null,
                     trailingContent = {
                         if (isLoggedIn) {
                             OutlinedButton(
@@ -295,142 +336,108 @@ fun AccountSettings(
             useLowContrast = true
         )
 
-        Spacer(Modifier.height(8.dp))
+        // Recommendations and sync switches (only shown when logged in)
+        if (isLoggedIn) {
+            Spacer(Modifier.height(8.dp))
 
-        Material3SettingsGroup(
-            items = listOf(
-                Material3SettingsItem(
-                    title = {
-                        Text(
-                            when {
-                                !isLoggedIn -> stringResource(R.string.advanced_login)
-                                showToken -> stringResource(R.string.token_shown)
-                                else -> stringResource(R.string.token_hidden)
-                            }
-                        )
-                    },
-                    icon = painterResource(R.drawable.token),
-                    onClick = {
-                        if (!isLoggedIn) showTokenEditor = true
-                        else if (!showToken) showToken = true
-                        else showTokenEditor = true
-                    }
-                ),
-                Material3SettingsItem(
-                    title = { Text(stringResource(R.string.more_content)) },
-                    icon = painterResource(R.drawable.cached),
-                    trailingContent = {
-                        Switch(
-                            enabled = isLoggedIn,
-                            checked = useLoginForBrowse,
-                            onCheckedChange = {
-                                YouTube.useLoginForBrowse = it
-                                onUseLoginForBrowseChange(it)
-                            },
-                            thumbContent = {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (useLoginForBrowse) R.drawable.check else R.drawable.close
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                                )
-                            }
-                        )
-                    },
-                    enabled = isLoggedIn
-                ),
-                Material3SettingsItem(
-                    title = { Text(stringResource(R.string.yt_sync)) },
-                    icon = painterResource(R.drawable.cached),
-                    trailingContent = {
-                        Switch(
-                            enabled = isLoggedIn,
-                            checked = ytmSync,
-                            onCheckedChange = onYtmSyncChange,
-                            thumbContent = {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (ytmSync) R.drawable.check else R.drawable.close
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                                )
-                            }
-                        )
-                    },
-                    enabled = isLoggedIn
-                )
-            ),
-            useLowContrast = true
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        Column(
-            modifier = Modifier
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainer)
-        ) {
-            PreferenceEntry(
-                title = { Text(stringResource(R.string.integrations)) },
-                icon = { Icon(painterResource(R.drawable.integration), null) },
-                onClick = {
-                    onClose()
-                    navController.navigate("settings/integrations")
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceContainer)
-            )
-
-            Spacer(Modifier.height(4.dp))
-
-            PreferenceEntry(
-                title = { Text(stringResource(R.string.settings)) },
-                icon = {
-                    BadgedBox(
-                        badge = {
-                            if (BuildConfig.UPDATER_AVAILABLE && latestVersionName != BuildConfig.VERSION_NAME) {
-                                Badge()
-                            }
+            Material3SettingsGroup(
+                items = listOf(
+                    Material3SettingsItem(
+                        title = { Text(stringResource(R.string.more_content)) },
+                        description = { Text(stringResource(R.string.more_content_desc)) },
+                        icon = painterResource(R.drawable.cached),
+                        trailingContent = {
+                            Switch(
+                                checked = useLoginForBrowse,
+                                onCheckedChange = {
+                                    YouTube.useLoginForBrowse = it
+                                    onUseLoginForBrowseChange(it)
+                                },
+                                thumbContent = {
+                                    Icon(
+                                        painter = painterResource(
+                                            id = if (useLoginForBrowse) R.drawable.check else R.drawable.close
+                                        ),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(SwitchDefaults.IconSize)
+                                    )
+                                }
+                            )
                         }
-                    ) {
-                        Icon(painterResource(R.drawable.settings), contentDescription = null)
-                    }
-                },
-                onClick = {
-                    onClose()
-                    navController.navigate("settings")
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceContainer)
-            )
-
-            Spacer(Modifier.height(4.dp))
-
-            if (BuildConfig.UPDATER_AVAILABLE && latestVersionName != BuildConfig.VERSION_NAME) {
-                val releaseInfo = Updater.getCachedLatestRelease()
-                val downloadUrl = releaseInfo?.let { Updater.getDownloadUrlForCurrentVariant(it) }
-                
-                if (downloadUrl != null) {
-                    PreferenceEntry(
-                        title = {
-                            Text(text = stringResource(R.string.new_version_available))
-                        },
-                        description = latestVersionName,
-                        icon = {
-                            BadgedBox(badge = { Badge() }) {
-                                Icon(painterResource(R.drawable.update), null)
-                            }
-                        },
-                        onClick = {
-                            uriHandler.openUri(downloadUrl)
+                    ),
+                    Material3SettingsItem(
+                        title = { Text(stringResource(R.string.yt_sync)) },
+                        description = { Text(stringResource(R.string.yt_sync_desc)) },
+                        icon = painterResource(R.drawable.cached),
+                        trailingContent = {
+                            Switch(
+                                checked = ytmSync,
+                                onCheckedChange = onYtmSyncChange,
+                                thumbContent = {
+                                    Icon(
+                                        painter = painterResource(
+                                            id = if (ytmSync) R.drawable.check else R.drawable.close
+                                        ),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(SwitchDefaults.IconSize)
+                                    )
+                                }
+                            )
                         }
                     )
+                ),
+                useLowContrast = true
+            )
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        // Navigation options
+        Material3SettingsGroup(
+            items = buildList {
+                add(
+                    Material3SettingsItem(
+                        title = { Text(stringResource(R.string.together)) },
+                        description = { Text(stringResource(R.string.together_desc)) },
+                        icon = painterResource(R.drawable.group_outlined),
+                        onClick = {
+                            onClose()
+                            navController.navigate("listen_together_from_topbar")
+                        }
+                    )
+                )
+                add(
+                    Material3SettingsItem(
+                        title = { Text(stringResource(R.string.settings)) },
+                        description = { Text(stringResource(R.string.settings_dialog_desc)) },
+                        icon = painterResource(R.drawable.settings),
+                        showBadge = BuildConfig.UPDATER_AVAILABLE && latestVersionName != BuildConfig.VERSION_NAME,
+                        onClick = {
+                            onClose()
+                            navController.navigate("settings")
+                        }
+                    )
+                )
+                if (BuildConfig.UPDATER_AVAILABLE && latestVersionName != BuildConfig.VERSION_NAME) {
+                    val releaseInfo = Updater.getCachedLatestRelease()
+                    val downloadUrl = releaseInfo?.let { Updater.getDownloadUrlForCurrentVariant(it) }
+                    
+                    if (downloadUrl != null) {
+                        add(
+                            Material3SettingsItem(
+                                title = { Text(text = stringResource(R.string.new_version_available)) },
+                                description = { Text(latestVersionName) },
+                                icon = painterResource(R.drawable.update),
+                                showBadge = true,
+                                onClick = {
+                                    onClose()
+                                    navController.navigate("settings/updater")
+                                }
+                            )
+                        )
+                    }
                 }
             }
-        }
+        )
     }
 }

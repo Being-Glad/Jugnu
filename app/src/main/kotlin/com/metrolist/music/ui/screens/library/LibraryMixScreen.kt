@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -27,6 +27,11 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.material3.ripple
+import com.metrolist.music.ui.utils.glassCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -217,6 +222,28 @@ fun LibraryMixScreen(
             songThumbnails = emptyList(),
         )
 
+    val historyPlaylist =
+        Playlist(
+            playlist =
+                PlaylistEntity(
+                    id = UUID.randomUUID().toString(),
+                    name = stringResource(R.string.history),
+                ),
+            songCount = 0,
+            songThumbnails = emptyList(),
+        )
+
+    val statsPlaylist =
+        Playlist(
+            playlist =
+                PlaylistEntity(
+                    id = UUID.randomUUID().toString(),
+                    name = stringResource(R.string.stats),
+                ),
+            songCount = 0,
+            songThumbnails = emptyList(),
+        )
+
     val (showLiked) = rememberPreference(ShowLikedPlaylistKey, true)
     val (showDownloaded) = rememberPreference(ShowDownloadedPlaylistKey, true)
     val (showTop) = rememberPreference(ShowTopPlaylistKey, true)
@@ -230,6 +257,8 @@ fun LibraryMixScreen(
     val showUploadedPlaylists =
         showUploaded && matchesNormalizedQuery(normalizedQuery, uploadedPlaylist.playlist.name)
     val showCachedPlaylists = showCached && matchesNormalizedQuery(normalizedQuery, cachedPlaylist.playlist.name)
+    val showHistoryPlaylist = matchesNormalizedQuery(normalizedQuery, historyPlaylist.playlist.name)
+    val showStatsPlaylist = matchesNormalizedQuery(normalizedQuery, statsPlaylist.playlist.name)
 
 
     val albums = viewModel.albums.collectAsStateWithLifecycle()
@@ -561,6 +590,42 @@ fun LibraryMixScreen(
                                         .fillMaxWidth()
                                         .clickable {
                                             navController.navigate("auto_playlist/uploaded")
+                                        }.animateItem(),
+                            )
+                        }
+                    }
+
+                    if (showHistoryPlaylist) {
+                        item(
+                            key = "historyPlaylist",
+                            contentType = { CONTENT_TYPE_PLAYLIST },
+                        ) {
+                            PlaylistListItem(
+                                playlist = historyPlaylist,
+                                autoPlaylist = true,
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            navController.navigate("history")
+                                        }.animateItem(),
+                            )
+                        }
+                    }
+
+                    if (showStatsPlaylist) {
+                        item(
+                            key = "statsPlaylist",
+                            contentType = { CONTENT_TYPE_PLAYLIST },
+                        ) {
+                            PlaylistListItem(
+                                playlist = statsPlaylist,
+                                autoPlaylist = true,
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            navController.navigate("stats")
                                         }.animateItem(),
                             )
                         }
@@ -909,6 +974,48 @@ fun LibraryMixScreen(
                         }
                     }
 
+                    if (showHistoryPlaylist) {
+                        item(
+                            key = "historyPlaylist",
+                            contentType = { CONTENT_TYPE_PLAYLIST },
+                        ) {
+                            PlaylistGridItem(
+                                playlist = historyPlaylist,
+                                fillMaxWidth = true,
+                                autoPlaylist = true,
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .combinedClickable(
+                                            onClick = {
+                                                navController.navigate("history")
+                                            },
+                                        ).animateItem(),
+                            )
+                        }
+                    }
+
+                    if (showStatsPlaylist) {
+                        item(
+                            key = "statsPlaylist",
+                            contentType = { CONTENT_TYPE_PLAYLIST },
+                        ) {
+                            PlaylistGridItem(
+                                playlist = statsPlaylist,
+                                fillMaxWidth = true,
+                                autoPlaylist = true,
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .combinedClickable(
+                                            onClick = {
+                                                navController.navigate("stats")
+                                            },
+                                        ).animateItem(),
+                            )
+                        }
+                    }
+
                     items(
                         items = filteredItems,
                         key = { it.id },
@@ -1062,8 +1169,8 @@ fun LibraryMixScreen(
         }
 
         // Always visible + button (no scroll hiding)
-        FloatingActionButton(
-            onClick = { showCreatePlaylistDialog = true },
+        Box(
+            contentAlignment = Alignment.Center,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .windowInsetsPadding(
@@ -1071,10 +1178,20 @@ fun LibraryMixScreen(
                         .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
                 )
                 .padding(16.dp)
+                .size(40.dp)
+                .glassCard(cornerRadius = 20.dp)
+                .clip(CircleShape)
+                .clickable(
+                    onClick = { showCreatePlaylistDialog = true },
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = ripple()
+                )
         ) {
             Icon(
                 painter = painterResource(R.drawable.add),
                 contentDescription = stringResource(R.string.create_playlist),
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
             )
         }
 

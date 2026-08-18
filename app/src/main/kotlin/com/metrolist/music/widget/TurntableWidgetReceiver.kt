@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -59,9 +59,9 @@ class TurntableWidgetReceiver : AppWidgetProvider() {
     }
 
     companion object {
-        const val ACTION_TURNTABLE_PLAY_PAUSE = "com.metrolist.music.widget.TURNTABLE_PLAY_PAUSE"
-        const val ACTION_TURNTABLE_NEXT = "com.metrolist.music.widget.TURNTABLE_NEXT"
-        const val ACTION_TURNTABLE_PREVIOUS = "com.metrolist.music.widget.TURNTABLE_PREVIOUS"
-        const val ACTION_UPDATE_TURNTABLE_WIDGET = "com.metrolist.music.widget.UPDATE_TURNTABLE_WIDGET"
+        const val ACTION_TURNTABLE_PLAY_PAUSE = "com.jugnu.music.widget.TURNTABLE_PLAY_PAUSE"
+        const val ACTION_TURNTABLE_NEXT = "com.jugnu.music.widget.TURNTABLE_NEXT"
+        const val ACTION_TURNTABLE_PREVIOUS = "com.jugnu.music.widget.TURNTABLE_PREVIOUS"
+        const val ACTION_UPDATE_TURNTABLE_WIDGET = "com.jugnu.music.widget.UPDATE_TURNTABLE_WIDGET"
     }
 }

@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -52,7 +52,7 @@ import com.metrolist.music.constants.MediaSessionConstants
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
-import com.metrolist.music.ui.component.PreferenceEntry
+import com.metrolist.music.ui.component.EnumDialog
 import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.utils.rememberPreference
 import kotlinx.coroutines.flow.map
@@ -240,42 +240,16 @@ fun AndroidAutoSettings(
         var showTargetPlaylistDialog by remember { mutableStateOf(false) }
 
         if (showTargetPlaylistDialog) {
-            androidx.compose.material3.AlertDialog(
-                onDismissRequest = { showTargetPlaylistDialog = false },
-                title = { Text(stringResource(R.string.android_auto_target_playlist)) },
-                text = {
-                    androidx.compose.foundation.lazy.LazyColumn {
-                        items(playlistOptions) { value ->
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        showTargetPlaylistDialog = false
-                                        onTargetPlaylistChange(value)
-                                    }
-                                    .padding(vertical = 12.dp),
-                            ) {
-                                androidx.compose.material3.RadioButton(
-                                    selected = value == targetPlaylist,
-                                    onClick = null,
-                                )
-                                Text(
-                                    text = playlistLabels(value),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    modifier = Modifier.padding(start = 16.dp),
-                                )
-                            }
-                        }
-                    }
+            EnumDialog(
+                onDismiss = { showTargetPlaylistDialog = false },
+                onSelect = {
+                    onTargetPlaylistChange(it)
+                    showTargetPlaylistDialog = false
                 },
-                confirmButton = {
-                    androidx.compose.material3.TextButton(
-                        onClick = { showTargetPlaylistDialog = false }
-                    ) {
-                        Text(stringResource(android.R.string.cancel))
-                    }
-                }
+                title = stringResource(R.string.android_auto_target_playlist),
+                current = targetPlaylist,
+                values = playlistOptions,
+                valueText = { playlistLabels(it) }
             )
         }
         

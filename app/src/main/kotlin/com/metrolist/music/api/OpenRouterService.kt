@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -166,8 +166,8 @@ Output MUST be a JSON array with EXACTLY $lineCount strings."""
                                     addHeader("Authorization", "Bearer ${apiKey.trim()}")
                                 }
                             }.addHeader("Content-Type", "application/json")
-                            .addHeader("HTTP-Referer", "https://github.com/MetrolistGroup/Metrolist")
-                            .addHeader("X-Title", "Metrolist")
+                            .addHeader("HTTP-Referer", "https://github.com/ompandey/Jugnu")
+                            .addHeader("X-Title", "Jugnu")
                             .post(jsonBody.toString().toRequestBody(JSON))
                             .build()
 

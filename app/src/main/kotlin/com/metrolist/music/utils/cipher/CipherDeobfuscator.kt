@@ -31,6 +31,20 @@ object CipherDeobfuscator {
     private val deobfuscateMutex = Mutex()
 
     /**
+     * Pre-warm player JS and CipherWebView in the background on app startup.
+     */
+    suspend fun prewarm() = deobfuscateMutex.withLock {
+        try {
+            if (cipherWebView == null) {
+                Timber.tag(TAG).d("Pre-warming CipherWebView in background...")
+                getOrCreateWebView(forceRefresh = false)
+            }
+        } catch (e: Exception) {
+            Timber.tag(TAG).w(e, "Pre-warming CipherWebView completed with note: ${e.message}")
+        }
+    }
+
+    /**
      * Deobfuscate a signatureCipher stream URL.
      *
      * The signatureCipher is a query string containing:

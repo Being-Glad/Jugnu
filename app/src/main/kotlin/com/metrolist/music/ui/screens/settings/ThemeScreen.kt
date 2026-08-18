@@ -78,10 +78,18 @@ import com.metrolist.music.constants.DynamicThemeKey
 import com.metrolist.music.constants.PureBlackKey
 import com.metrolist.music.constants.PureBlackMiniPlayerKey
 import com.metrolist.music.constants.SelectedThemeColorKey
+import com.metrolist.music.constants.ThemeStyleKey
+import com.metrolist.music.constants.GlassStyle
+import com.metrolist.music.constants.GlassStyleKey
+import com.metrolist.music.constants.GlassOpacityKey
 import com.metrolist.music.ui.theme.DefaultThemeColor
 import com.metrolist.music.ui.theme.MetrolistTheme
+import com.metrolist.music.ui.utils.glassCard
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
+import androidx.compose.material3.Slider
+import kotlin.math.roundToInt
+
 
 data class ThemePalette(
     val nameRes: Int,
@@ -89,26 +97,17 @@ data class ThemePalette(
 )
 
 val PaletteColors = listOf(
-    ThemePalette(R.string.palette_dynamic, Color.Transparent), // Sentinel for System/Dynamic colors
-    ThemePalette(R.string.palette_crimson, Color(0xFFEC5464)), // Slightly shifted from DefaultThemeColor (0xFFED5564) to avoid conflict
-    ThemePalette(R.string.palette_rose, Color(0xFFD81B60)),
-    ThemePalette(R.string.palette_purple, Color(0xFF8E24AA)),
-    ThemePalette(R.string.palette_deep_purple, Color(0xFF5E35B1)),
-    ThemePalette(R.string.palette_indigo, Color(0xFF3949AB)),
-    ThemePalette(R.string.palette_blue, Color(0xFF1E88E5)),
-    ThemePalette(R.string.palette_sky_blue, Color(0xFF039BE5)),
-    ThemePalette(R.string.palette_cyan, Color(0xFF00ACC1)),
-    ThemePalette(R.string.palette_teal, Color(0xFF00897B)),
-    ThemePalette(R.string.palette_green, Color(0xFF43A047)),
-    ThemePalette(R.string.palette_light_green, Color(0xFF7CB342)),
-    ThemePalette(R.string.palette_lime, Color(0xFFC0CA33)),
-    ThemePalette(R.string.palette_yellow, Color(0xFFFDD835)),
-    ThemePalette(R.string.palette_amber, Color(0xFFFFB300)),
-    ThemePalette(R.string.palette_orange, Color(0xFFFB8C00)),
-    ThemePalette(R.string.palette_deep_orange, Color(0xFFF4511E)),
-    ThemePalette(R.string.palette_brown, Color(0xFF6D4C41)),
-    ThemePalette(R.string.palette_grey, Color(0xFF757575)),
-    ThemePalette(R.string.palette_blue_grey, Color(0xFF546E7A)),
+    ThemePalette(R.string.palette_dynamic, Color.Transparent), // Dynamic
+    ThemePalette(R.string.palette_synthwave, Color(0xFF9D4EDD)), // Synthwave Purple
+    ThemePalette(R.string.palette_cyberpunk, Color(0xFFFF007F)), // Cyberpunk Pink
+    ThemePalette(R.string.palette_electric_blue, Color(0xFF0077B6)), // Electric Blue
+    ThemePalette(R.string.palette_emerald, Color(0xFF06D6A0)), // Emerald Green
+    ThemePalette(R.string.palette_sakura, Color(0xFFFF8FAB)), // Sakura Pink
+    ThemePalette(R.string.palette_lava, Color(0xFFF77F00)), // Lava Orange
+    ThemePalette(R.string.palette_sunset, Color(0xFFFFD166)), // Sunset Gold
+    ThemePalette(R.string.palette_nordic, Color(0xFF8ECAE6)), // Nordic Frost
+    ThemePalette(R.string.palette_mint, Color(0xFF00A896)), // Fresh Mint
+    ThemePalette(R.string.palette_crimson, Color(0xFFEC5464)), // Crimson
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -294,15 +293,29 @@ fun ThemeControls(
     selectedThemeColor: Color,
     onSelectedThemeColorChange: (Color) -> Unit
 ) {
+    val (themeStyle, onThemeStyleChange) = rememberEnumPreference(ThemeStyleKey, PaletteStyle.TonalSpot)
+    val (glassStyle, onGlassStyleChange) = rememberEnumPreference(GlassStyleKey, defaultValue = GlassStyle.LIQUID)
+    val (glassOpacity, onGlassOpacityChange) = rememberPreference(GlassOpacityKey, defaultValue = 0.88f)
+
+    
+    val isSystemDark = isSystemInDarkTheme()
+    val isPureBlack = pureBlack && isSystemDark
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp)
+            .then(
+                if (isPureBlack) {
+                    Modifier.background(Color.Black, RoundedCornerShape(24.dp))
+                } else {
+                    Modifier.glassCard(cornerRadius = 24.dp)
+                }
+            ),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            containerColor = Color.Transparent
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -409,8 +422,146 @@ fun ThemeControls(
                     }
                 }
             }
+
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = stringResource(R.string.theme_style),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                
+                val styles = listOf(
+                    PaletteStyle.Vibrant,
+                    PaletteStyle.Expressive,
+                    PaletteStyle.Fidelity,
+                    PaletteStyle.Content,
+                    PaletteStyle.Rainbow,
+                    PaletteStyle.FruitSalad,
+                    PaletteStyle.Monochrome,
+                    PaletteStyle.TonalSpot,
+                    PaletteStyle.Neutral
+                )
+                
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(styles) { style ->
+                        val isStyleSelected = themeStyle == style
+                        val styleName = when (style) {
+                            PaletteStyle.TonalSpot -> stringResource(R.string.theme_style_tonal_spot)
+                            PaletteStyle.Neutral -> stringResource(R.string.theme_style_neutral)
+                            PaletteStyle.Vibrant -> stringResource(R.string.theme_style_vibrant)
+                            PaletteStyle.Expressive -> stringResource(R.string.theme_style_expressive)
+                            PaletteStyle.Rainbow -> stringResource(R.string.theme_style_rainbow)
+                            PaletteStyle.FruitSalad -> stringResource(R.string.theme_style_fruit_salad)
+                            PaletteStyle.Monochrome -> stringResource(R.string.theme_style_monochrome)
+                            PaletteStyle.Fidelity -> stringResource(R.string.theme_style_fidelity)
+                            PaletteStyle.Content -> stringResource(R.string.theme_style_content)
+                        }
+                        
+                        val containerColor = if (isStyleSelected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        }
+                        val contentColor = if (isStyleSelected) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                        
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(containerColor)
+                                .clickable { onThemeStyleChange(style) }
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = styleName,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = contentColor
+                            )
+                        }
+                    }
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = stringResource(R.string.glassmorphism_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                
+                val glassStyles = listOf(
+                    GlassStyle.LIQUID,
+                    GlassStyle.STANDARD,
+                    GlassStyle.CUSTOM
+                )
+                
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(glassStyles) { style ->
+                        val isStyleSelected = glassStyle == style
+                        val styleName = when (style) {
+                            GlassStyle.LIQUID -> stringResource(R.string.glass_style_liquid)
+                            GlassStyle.STANDARD -> stringResource(R.string.glass_style_standard)
+                            GlassStyle.CUSTOM -> stringResource(R.string.glass_style_custom)
+                        }
+                        
+                        val containerColor = if (isStyleSelected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        }
+                        val contentColor = if (isStyleSelected) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                        
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(containerColor)
+                                .clickable { onGlassStyleChange(style) }
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = styleName,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = contentColor
+                            )
+                        }
+                    }
+                }
+                
+                if (glassStyle == GlassStyle.CUSTOM) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.glass_opacity_title) + ": ${(glassOpacity * 100).roundToInt()}%",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Slider(
+                        value = glassOpacity,
+                        onValueChange = onGlassOpacityChange,
+                        valueRange = 0.30f..1.00f,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
         }
     }
+
 }
 
 @Composable
@@ -433,13 +584,14 @@ fun ModeCircle(
     }
     
     // Use actual system colors for AUTO mode on Android 12+
+    val (themeStyle, _) = rememberEnumPreference(ThemeStyleKey, PaletteStyle.TonalSpot)
     val modeColorScheme = if (targetMode == DarkMode.AUTO && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         if (effectiveDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
     } else {
         rememberDynamicColorScheme(
             seedColor = DefaultThemeColor,
             isDark = effectiveDark,
-            style = PaletteStyle.TonalSpot
+            style = themeStyle
         )
     }
     
@@ -551,11 +703,12 @@ fun PaletteItem(
     onClick: () -> Unit
 ) {
     val isSystemDark = isSystemInDarkTheme()
+    val (themeStyle, _) = rememberEnumPreference(ThemeStyleKey, PaletteStyle.TonalSpot)
     
     val colorScheme = rememberDynamicColorScheme(
         seedColor = palette.seedColor,
         isDark = isSystemDark,
-        style = PaletteStyle.TonalSpot
+        style = themeStyle
     )
     
     val cornerRadius by animateDpAsState(
@@ -673,11 +826,13 @@ fun ThemeMockup(
         DarkMode.ON -> true
         DarkMode.OFF -> false
     }
+    val (themeStyle, _) = rememberEnumPreference(ThemeStyleKey, PaletteStyle.TonalSpot)
 
     MetrolistTheme(
         darkTheme = useDark,
         pureBlack = pureBlack,
-        themeColor = themeColor
+        themeColor = themeColor,
+        themeStyle = themeStyle
     ) {
         Card(
             modifier = Modifier
@@ -781,11 +936,13 @@ fun ThemeMockupPortrait(
         DarkMode.ON -> true
         DarkMode.OFF -> false
     }
+    val (themeStyle, _) = rememberEnumPreference(ThemeStyleKey, PaletteStyle.TonalSpot)
 
     MetrolistTheme(
         darkTheme = useDark,
         pureBlack = pureBlack,
-        themeColor = themeColor
+        themeColor = themeColor,
+        themeStyle = themeStyle
     ) {
         Card(
             modifier = Modifier

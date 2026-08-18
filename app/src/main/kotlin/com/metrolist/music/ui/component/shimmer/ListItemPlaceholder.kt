@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -42,7 +42,7 @@ fun ListItemPlaceHolder(
                 .padding(6.dp)
                 .size(ListThumbnailSize)
                 .clip(thumbnailShape)
-                .background(MaterialTheme.colorScheme.onSurface),
+                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.08f)),
         )
 
         Column(

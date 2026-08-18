@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -32,6 +32,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.metrolist.music.R
 import com.metrolist.music.BuildConfig
+import com.metrolist.music.ui.utils.glassCard
 import com.metrolist.music.utils.ReleaseInfo
 import com.metrolist.music.utils.Updater
 
@@ -68,20 +69,32 @@ fun ChangelogScreen(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        containerColor = Color.Transparent,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        dragHandle = { BottomSheetDefaults.DragHandle() }
+        dragHandle = null
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 80.dp)
-            ) {
-                item {
-                    Text(
+        val shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .glassCard(shape = shape)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    BottomSheetDefaults.DragHandle()
+                }
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 80.dp)
+                ) {
+                    item {
+                        Text(
                         text = stringResource(R.string.changelog),
                         style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.Bold,
@@ -126,8 +139,9 @@ fun ChangelogScreen(
                     }
                 }
             }
+        }
 
-            androidx.compose.animation.AnimatedVisibility(
+        androidx.compose.animation.AnimatedVisibility(
                 visible = showFab,
                 enter = fadeIn() + slideInVertically { it },
                 exit = fadeOut() + slideOutVertically { it },
@@ -135,7 +149,7 @@ fun ChangelogScreen(
                     .align(Alignment.BottomEnd)
                     .padding(16.dp)
             ) {
-                val githubReleasesUrl = stringResource(R.string.github_releases_url)
+                val githubReleasesUrl = Updater.GITHUB_RELEASES_URL
                 ExtendedFloatingActionButton(
                     onClick = { uriHandler.openUri(githubReleasesUrl) },
                     icon = { Icon(painterResource(R.drawable.github), contentDescription = null, modifier = Modifier.size(24.dp)) },
@@ -178,9 +192,11 @@ fun ReleaseItem(release: ReleaseInfo) {
         Spacer(modifier = Modifier.height(12.dp))
 
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .glassCard(cornerRadius = 16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer
+                containerColor = Color.Transparent
             ),
             shape = RoundedCornerShape(16.dp)
         ) {

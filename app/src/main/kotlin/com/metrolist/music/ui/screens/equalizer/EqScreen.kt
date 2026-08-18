@@ -49,6 +49,7 @@ import com.metrolist.music.LocalNavController
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
 import com.metrolist.music.eq.data.SavedEQProfile
+import com.metrolist.music.ui.component.DefaultDialog
 import timber.log.Timber
 
 /**
@@ -134,38 +135,36 @@ fun EqScreen(
 
     // Error dialog
     if (showError != null) {
-        AlertDialog(
-            onDismissRequest = { showError = null },
+        DefaultDialog(
+            onDismiss = { showError = null },
             title = {
                 Text(stringResource(R.string.import_error_title))
             },
-            text = {
-                Text(showError ?: "")
-            },
-            confirmButton = {
+            buttons = {
                 TextButton(onClick = { showError = null }) {
                     Text(stringResource(android.R.string.ok))
                 }
             }
-        )
+        ) {
+            Text(showError ?: "")
+        }
     }
 
     // Error dialog for apply failure
     if (state.error != null) {
-        AlertDialog(
-            onDismissRequest = { viewModel.clearError() },
+        DefaultDialog(
+            onDismiss = { viewModel.clearError() },
             title = {
                 Text(stringResource(R.string.error_title))
             },
-            text = {
-                Text(stringResource(R.string.error_eq_apply_failed, state.error ?: ""))
-            },
-            confirmButton = {
+            buttons = {
                 TextButton(onClick = { viewModel.clearError() }) {
                     Text(stringResource(android.R.string.ok))
                 }
             }
-        )
+        ) {
+            Text(stringResource(R.string.error_eq_apply_failed, state.error ?: ""))
+        }
     }
 }
 
@@ -381,15 +380,13 @@ private fun EQProfileItem(
 
     // Delete confirmation dialog
     if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
+        DefaultDialog(
+            onDismiss = { showDeleteDialog = false },
             title = { Text(stringResource(R.string.delete_profile_desc)) },
-            text = {
-                Text(
-                    stringResource(R.string.delete_profile_confirmation, profile.name)
-                )
-            },
-            confirmButton = {
+            buttons = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
                 TextButton(
                     onClick = {
                         onDelete()
@@ -398,12 +395,11 @@ private fun EQProfileItem(
                 ) {
                     Text(stringResource(android.R.string.ok))
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text(stringResource(android.R.string.cancel))
-                }
             }
-        )
+        ) {
+            Text(
+                stringResource(R.string.delete_profile_confirmation, profile.name)
+            )
+        }
     }
 }

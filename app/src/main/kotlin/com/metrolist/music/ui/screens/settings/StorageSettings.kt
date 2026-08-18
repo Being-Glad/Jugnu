@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -245,12 +244,16 @@ fun StorageSettings(
         )
     }
 
-    // Confirmation Dialog
     if (showCacheWarningDialog) {
-        AlertDialog(
-            onDismissRequest = { showCacheWarningDialog = false },
-            title = { Text(stringResource(R.string.cache_size_warning_title)) },
-            text = {
+        ActionPromptDialog(
+            title = stringResource(R.string.cache_size_warning_title),
+            onDismiss = { showCacheWarningDialog = false },
+            onConfirm = {
+                onConfirmAction()
+                showCacheWarningDialog = false
+            },
+            onCancel = { showCacheWarningDialog = false },
+            content = {
                 Text(
                     stringResource(
                         R.string.cache_size_warning_message,
@@ -258,25 +261,7 @@ fun StorageSettings(
                         cacheType,
                     ),
                 )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onConfirmAction()
-                        showCacheWarningDialog = false
-                    },
-                ) {
-                    Text(
-                        stringResource(R.string.cache_size_warning_confirm),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCacheWarningDialog = false }) {
-                    Text(stringResource(id = android.R.string.cancel))
-                }
-            },
+            }
         )
     }
 

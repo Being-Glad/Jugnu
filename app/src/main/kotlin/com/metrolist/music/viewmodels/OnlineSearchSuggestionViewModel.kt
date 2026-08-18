@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -26,6 +26,8 @@ import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.get
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import com.metrolist.innertube.pages.MoodAndGenres
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,10 +45,26 @@ class OnlineSearchSuggestionViewModel
         database: MusicDatabase,
     ) : ViewModel() {
         val query = MutableStateFlow("")
+        val moodAndGenres = MutableStateFlow<List<MoodAndGenres.Item>?>(null)
         private val _viewState = MutableStateFlow(SearchSuggestionViewState())
         val viewState = _viewState.asStateFlow()
 
         init {
+            viewModelScope.launch(Dispatchers.IO) {
+                YouTube.explore().onSuccess { page ->
+                    val rawList = page.moodAndGenres
+                    val popularKeywords = setOf(
+                        "chill", "energize", "feel good", "focus", "workout",
+                        "party", "romance", "sleep", "gaming", "commute",
+                        "pop", "hip-hop", "rock", "dance & electronic", "indie & alternative", "classical"
+                    )
+                    val curated = rawList.filter { item ->
+                        val lower = item.title.lowercase().trim()
+                        popularKeywords.any { kw -> lower == kw || lower.startsWith(kw) }
+                    }
+                    moodAndGenres.value = if (curated.isNotEmpty()) curated.take(12) else rawList.take(10)
+                }
+            }
             viewModelScope.launch {
                 query
                     .flatMapLatest { query ->

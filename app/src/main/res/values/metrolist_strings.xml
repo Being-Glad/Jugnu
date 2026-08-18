@@ -168,7 +168,13 @@
     <string name="token_shown">Tap again to copy or edit</string>
     <string name="token_adv_login_description">This is an ADVANCED login method. Instead of using the web portal, you can enter or update your login token directly. This can be useful for signing in across multiple devices quickly. Tokens in an unrecognized format will be rejected</string>
     <string name="yt_sync">Auto-sync with account</string>
-    <string name="more_content">More content</string>
+    <string name="yt_sync_desc">Sync liked songs, subscriptions and playlists with YouTube Music</string>
+    <string name="more_content">Personalized recommendations</string>
+    <string name="more_content_desc">Use your YouTube account for personalized Home feed &amp; mixes</string>
+    <string name="account_login_desc">Sign in with Google or YouTube Music to sync your library</string>
+    <string name="together_desc">Listen to music in sync with friends in real time</string>
+    <string name="settings_dialog_desc">Themes, audio engine, lyrics &amp; preferences</string>
+    <string name="signed_in_ytm">Signed in to YouTube Music</string>
 
     <string name="sort_ascending">Sort ascending</string>
     <string name="sort_descending">Sort descending</string>
@@ -240,7 +246,7 @@
     <string name="release_notes">Release notes</string>
     <string name="changelog">Changelog</string>
     <string name="changelog_empty">No changelogs available</string>
-    <string name="github_releases_url">https://github.com/MetrolistGroup/Metrolist/releases</string>
+    <string name="github_releases_url">https://github.com</string>
     <string name="list_bullet">•</string>
     <string name="view_on_github">View on GitHub</string>
     <string name="current_version">Current version</string>
@@ -349,6 +355,11 @@
     <string name="crossfade_beta_message">Crossfade is a new feature and may have bugs. If you experience any issues, please report them.\n\nNOTE: This feature disables audio offload due to technical limitations</string>
 
     <!-- Romanization Settings -->
+    <string name="lyrics_loading_casual">Hum along, getting lyrics ready…</string>
+    <string name="lyrics_not_found_casual">Lyrics aren’t available for this song</string>
+    <string name="lyrics_display_preset">Lyrics display style</string>
+    <string name="lyrics_display_preset_smart">Smart Romanization</string>
+    <string name="lyrics_display_preset_custom">Custom / Manual</string>
     <string name="lyrics_romanization_cyrillic">Cyrillic</string>
     <string name="lyrics_romanize_title">Romanization</string>
     <string name="lyrics_romanization">Lyrics romanization</string>
@@ -372,12 +383,32 @@
     <!-- Lyrics Offset Settings -->
     <string name="lyrics_offset">Lyrics offset</string>
 
-    <!-- Material 3 Settings Sections -->
+    <!-- Material 3 & Niagara Style Settings Sections -->
     <string name="settings_section_ui">Interface</string>
+    <string name="settings_section_look_and_feel">Look &amp; Feel</string>
+    <string name="settings_section_audio_engine">Sound &amp; Playback</string>
+    <string name="settings_section_lyrics_ai">Lyrics &amp; AI Intelligence</string>
+    <string name="settings_section_content_library">Library &amp; Storage</string>
+    <string name="settings_section_integrations">Connected Services</string>
     <string name="settings_section_privacy">Privacy &amp; Security</string>
     <string name="settings_section_player_content">Player &amp; Content</string>
     <string name="settings_section_storage">Storage &amp; Data</string>
     <string name="settings_section_system">System &amp; About</string>
+
+    <!-- Settings Subtitles -->
+    <string name="settings_appearance_desc">Themes, Pure Black, MiniPlayer style, Dynamic colors</string>
+    <string name="settings_player_desc">Quality, Crossfade, Loudness normalization, Sleep timer</string>
+    <string name="settings_equalizer_desc">10-band Parametric EQ, 4,000+ headphone calibration profiles</string>
+    <string name="settings_ai_lyrics_desc">Apple-style synced lyrics, real-time AI translations</string>
+    <string name="settings_romanization_desc">Furigana, Pinyin and Hangul pronunciation</string>
+    <string name="settings_content_desc">Explicit filters, Regional charts, Search options</string>
+    <string name="settings_storage_desc">Offline downloads, Cache management &amp; cleanup</string>
+    <string name="settings_backup_desc">Export &amp; import library, playlists and settings</string>
+    <string name="settings_integrations_desc">Discord RPC, Last.fm, Listen Together, Android Auto</string>
+    <string name="settings_updater_desc">Check for updates &amp; release channels</string>
+    <string name="settings_changelog_desc">See what\'s new in this version</string>
+    <string name="settings_about_desc">App info, open source licenses, contributors</string>
+    <string name="settings_default_links_desc">Configure verified supported links in system</string>
 
     <!-- Updater -->
     <string name="updater">Updater</string>
@@ -417,7 +448,7 @@
     <string name="enable_scrobbling">Enable scrobbling</string>
     <string name="lastfm_now_playing">Send Now Playing status</string>
     <string name="last_fm_send_likes">Sync Loved and Unloved</string>
-    <string name="last_fm_send_likes_description">Love or unlove songs in Last.fm when you like or unlike them in Metrolist</string>
+    <string name="last_fm_send_likes_description">Love or unlove songs in Last.fm when you like or unlike them in Jugnu</string>
     <string name="logging_in">Logging in…</string>
 
     <string name="scrobbling_configuration">Scrobbling configuration</string>
@@ -440,7 +471,9 @@
     <string name="delete_desc">Permanently remove this item</string>
     <string name="advanced_desc">Adjust the song\'s tempo and pitch</string>
     <string name="equalizer_desc">Open the audio equalizer</string>
-    <string name="enable_dynamic_icon">Enable dynamic icon</string>
+    <string name="enable_dynamic_icon">Custom Jugnu Icon &amp; Name</string>
+    <string name="enable_dynamic_icon_desc">Toggle between custom Jugnu branding and official YT Music branding on your home screen</string>
+    <string name="yt_music_app_name">YT Music</string>
     <string name="mini_player">Mini-player</string>
     <string name="pure_black_mini_player">Pure black mini-player</string>
     <string name="mini_player_background_style">Mini-player background style</string>
@@ -479,15 +512,15 @@
     <string name="wrapped_total_artists_subtitle">unique artists!</string>
     <string name="wrapped_total_songs_title">You\'ve listened to</string>
     <string name="wrapped_total_songs_subtitle">unique songs!</string>
-    <string name="wrapped_intro_title">METROLIST</string>
+    <string name="wrapped_intro_title">JUGNU</string>
     <string name="wrapped_intro_subtitle">it\'s time to see what you\'ve been listening to all this year…</string>
     <string name="wrapped_intro_button">let\'s go!</string>
-    <string name="wrapped_logo_content_description">Metrolist Logo</string>
+    <string name="wrapped_logo_content_description">Jugnu Logo</string>
     <string name="wrapped_year">2025</string>
     <string name="wrapped_ready_title">YOUR WRAPPED IS READY!</string>
     <string name="wrapped_ready_subtitle">Time to see what you loved all this year…</string>
     <string name="wrapped_thank_you">Thank you for listening!</string>
-    <string name="wrapped_special_thanks">Special thanks to MO Agamy for creating Metrolist</string>
+    <string name="wrapped_special_thanks">Special thanks to MO Agamy for creating Jugnu</string>
     <string name="wrapped_close">Close Wrapped</string>
     <string name="wrapped_playlist_title">Your %s Wrapped</string>
     <string name="wrapped_create_playlist">Create playlist</string>
@@ -538,7 +571,7 @@
     <string name="plays">plays</string>
     <string name="casting_to">Casting to %s</string>
     <string name="progress_percent">Progress %s%%</string>
-    <string name="listening_to_metrolist">Listening to Metrolist</string>
+    <string name="listening_to_jugnu">Listening to Jugnu</string>
     <string name="open">Open</string>
     <string name="failed_to_create_image">Failed to create image: %s</string>
     <string name="copied_title">Title copied</string>
@@ -557,13 +590,13 @@
     <!-- Widget strings -->
     <string name="album_art">Album art</string>
     <string name="no_song_playing">No song playing</string>
-    <string name="tap_to_open">Tap to open Metrolist</string>
+    <string name="tap_to_open">Tap to open Jugnu</string>
     <string name="previous">Previous</string>
     <string name="play_pause">Play/Pause</string>
     <string name="next">Next</string>
     <string name="like">Like</string>
     <string name="not_playing">No song playing</string>
-    <string name="tap_to_play">Tap to open Metrolist</string>
+    <string name="tap_to_play">Tap to open Jugnu</string>
     <string name="widget_description">Music player widget with playback controls</string>
     <string name="turntable_widget_description">Circular music widget with play and like controls</string>
     <string name="widget_music_player">Music Player</string>
@@ -729,7 +762,7 @@
     <string name="crash_description">An unexpected error occurred. Please share the crash report to help us fix the issue</string>
     <string name="crash_share_logs">Share logs</string>
     <string name="crash_share_title">Share crash report</string>
-    <string name="crash_report_subject">Metrolist crash report</string>
+    <string name="crash_report_subject">Jugnu crash report</string>
     <string name="crash_close">Close</string>
     <string name="crash_no_log">No crash log available</string>
 
@@ -779,7 +812,7 @@
     <string name="clear_recognition_history_confirm">Are you sure you want to clear all recognition history?</string>
     <string name="delete_from_history">Delete from history</string>
     <string name="re_listen">Re-listen</string>
-    <string name="play_on_app">Play on Metrolist</string>
+    <string name="play_on_app">Play on Jugnu</string>
     <string name="qs_tile_music_recognizer">Recognize music</string>
     <string name="recognition_notification_channel_name">Music recognition</string>
     <string name="recognition_notification_channel_desc">Shows a notification while identifying a song from quick settings</string>
@@ -787,7 +820,7 @@
     <string name="recognition_notification_processing">Identifying…</string>
     <string name="recognition_notification_no_match">No match found</string>
     <string name="recognition_notification_failed">Recognition failed</string>
-    <string name="listen_on_metrolist">Listen on Metrolist</string>
+    <string name="listen_on_jugnu">Listen on Jugnu</string>
 
     <!-- CSV Import Strings -->
     <string name="map_csv_columns">Map CSV columns</string>
@@ -804,7 +837,7 @@
 
     <string name="discord_connect_description">Sign in with Discord to share what you\'re listening to</string>
     <string name="discord_gms_only">Discord Rich Presence is only available in the GMS build. Download the GMS variant to use this feature.</string>
-    <string name="discord_information_warning">Metrolist uses Discord\'s official OAuth2 SDK to share what you\'re listening to. All data goes directly from your device to Discord — no third-party servers involved. Your token stays on your device and is never shared. Discord\'s SDK bundles permissions together, so you\'ll see requests like friends list and profile access — this is normal and does not give Metrolist access to manage your friends or edit your profile.</string>
+    <string name="discord_information_warning">Jugnu uses Discord\'s official OAuth2 SDK to share what you\'re listening to. All data goes directly from your device to Discord — no third-party servers involved. Your token stays on your device and is never shared. Discord\'s SDK bundles permissions together, so you\'ll see requests like friends list and profile access — this is normal and does not give Jugnu access to manage your friends or edit your profile.</string>
     <string name="discord_rpc_preview">Rich Presence preview</string>
     <string name="discord_integration">Discord Integration</string>
     <string name="enable_discord_rpc">Enable Rich Presence</string>
@@ -870,12 +903,15 @@
     <string name="credits_view_repo">View repository</string>
     <string name="app_version_info">%1$s • %2$s</string>
     <string name="like_what_i_do">Like what I do?</string>
+    <string name="credits_github_repo">GitHub repository</string>
+    <string name="credits_original_project">With deep gratitude to the creators of Metrolist. Their dedication to open-source music streaming made Jugnu possible.</string>
     <string name="buy_mo_a_coffee">Buy me a coffee!</string>
     <string name="community_and_info">Community &amp; Info</string>
-    <string name="metrolist">METROLIST</string>
+    <string name="jugnu">JUGNU</string>
     <string name="wanna_play_favorite_song">Want to play their favorite song?</string>
     <string name="yeah">Yeah!</string>
-    <string name="stands_with_palestine">This project stands with Palestine 🇵🇸</string>
+    <string name="trending_songs_header">Trending Now</string>
+    <string name="refresh_trending_tooltip">Show different songs</string>
 
     <!-- Podcasts -->
     <string name="filter_podcasts">Podcasts</string>
@@ -976,4 +1012,56 @@
     <string name="widget_playlists_description">Playlist shortcuts with mini-player controls</string>
     <string name="choose_something_below">Choose something below</string>
     <string name="stream_client">Stream client</string>
+    <string name="validate_streams">Pre-validate stream URLs</string>
+    <string name="validate_streams_desc">Perform a fast network check on playback URLs. Disabling this saves 200-500ms on song loading.</string>
+    <string name="ai_discover_mix">AI Discover Mix</string>
+    <string name="generate_ai_mix">Generate Spotify-style Mix</string>
+    <string name="recommendations_loading">Curating your mix using ListenBrainz...</string>
+    <string name="next_songs">Next Songs</string>
+    <string name="no_songs_in_queue">No songs in queue</string>
+
+    <!-- Theme Style Names -->
+    <string name="theme_style">Theme Style</string>
+    <string name="theme_style_tonal_spot">Muted</string>
+    <string name="theme_style_neutral">Neutral</string>
+    <string name="theme_style_vibrant">Vibrant</string>
+    <string name="theme_style_expressive">Expressive</string>
+    <string name="theme_style_rainbow">Rainbow</string>
+    <string name="theme_style_fruit_salad">Fruit Salad</string>
+    <string name="theme_style_monochrome">Monochrome</string>
+    <string name="theme_style_fidelity">Fidelity</string>
+    <string name="theme_style_content">Content Focused</string>
+
+    <!-- Curated Vibrant Colors -->
+    <string name="palette_synthwave">Synthwave Purple</string>
+    <string name="palette_cyberpunk">Cyberpunk Pink</string>
+    <string name="palette_electric_blue">Electric Blue</string>
+    <string name="palette_emerald">Emerald Green</string>
+    <string name="palette_sakura">Sakura Pink</string>
+    <string name="palette_nordic">Nordic Frost</string>
+    <string name="palette_lava">Lava Orange</string>
+    <string name="palette_sunset">Sunset Gold</string>
+    <string name="palette_mint">Fresh Mint</string>
+
+    <!-- Glassmorphic settings strings -->
+    <string name="glassmorphism_title">Glassmorphic Cards</string>
+    <string name="glass_card_style">Glass Card Style</string>
+    <string name="glass_style_liquid">Liquid Glass</string>
+    <string name="glass_style_standard">Standard Glass</string>
+    <string name="glass_style_custom">Custom Glass</string>
+    <string name="glass_opacity_title">Glass Opacity</string>
+
+    <!-- Updater In-App Strings -->
+    <string name="download_and_install_update">Download and install update</string>
+    <string name="downloading_update_format">Downloading update: %d%%</string>
+    <string name="grant_install_permission_title">Install unknown apps permission required</string>
+    <string name="grant_install_permission_desc">Jugnu requires permission to install downloaded update packages. Please enable it in the system settings.</string>
+    <string name="grant_install_permission_button">Open Settings</string>
+    <string name="download_failed">Download failed: %s</string>
+    <string name="installing_update">Launching installer…</string>
+
+    <!-- Unified Search Strings -->
+    <string name="search_unified_hint">Search YouTube Music &amp; Library…</string>
+    <string name="recent_searches">Recent searches</string>
 </resources>
+

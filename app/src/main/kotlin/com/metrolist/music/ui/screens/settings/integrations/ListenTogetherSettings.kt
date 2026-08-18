@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -94,6 +94,7 @@ import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.IntegrationCard
 import com.metrolist.music.ui.component.IntegrationCardItem
 import com.metrolist.music.ui.utils.backToMain
+import com.metrolist.music.ui.utils.glassCard
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.ListenTogetherViewModel
 import kotlinx.coroutines.flow.collectLatest
@@ -644,20 +645,22 @@ private fun ServerChooserDialog(
         ) {
             servers.forEach { server ->
                 val isSelected = server.url == currentUrl
+                val containerColor =
+                    if (isSelected) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    }
                 Card(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .clickable { onSelect(server) },
+                            .clickable { onSelect(server) }
+                            .glassCard(cornerRadius = 16.dp, backgroundColor = containerColor.copy(alpha = 0.88f)),
                     shape = RoundedCornerShape(16.dp),
                     colors =
                         CardDefaults.cardColors(
-                            containerColor =
-                                if (isSelected) {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceVariant
-                                },
+                            containerColor = Color.Transparent,
                         ),
                 ) {
                     Row(

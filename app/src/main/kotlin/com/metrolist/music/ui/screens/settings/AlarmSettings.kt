@@ -20,6 +20,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.metrolist.music.utils.rememberPreference
+import androidx.compose.ui.graphics.Color
+import com.metrolist.music.constants.PureBlackKey
+import com.metrolist.music.ui.utils.glassCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
@@ -385,6 +392,18 @@ private fun AlarmEditorDialog(
                 ) {
                     items(items = playlists, key = { it.id }) { playlist ->
                         val selected = playlist.id == playlistId
+                        val isSystemDark = isSystemInDarkTheme()
+                        val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
+                        val isPureBlack = pureBlack && isSystemDark
+                        val shape = RoundedCornerShape(12.dp)
+
+                        val dynamicPrimary = MaterialTheme.colorScheme.primary
+                        val bg = if (selected) {
+                            if (isPureBlack) Color(0xFF1E1E1E) else dynamicPrimary.copy(alpha = 0.15f)
+                        } else {
+                            if (isPureBlack) Color.Black else Color(0xFF121316).copy(alpha = 0.65f)
+                        }
+
                         Card(
                             onClick = {
                                 playlistId = playlist.id
@@ -392,14 +411,23 @@ private fun AlarmEditorDialog(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 4.dp),
+                                .padding(vertical = 4.dp)
+                                .then(
+                                    if (isPureBlack) {
+                                        Modifier.background(bg, shape)
+                                    } else {
+                                        Modifier.glassCard(
+                                            shape = shape,
+                                            borderColor = if (selected) dynamicPrimary else null,
+                                            backgroundColor = bg
+                                        )
+                                    }
+                                ),
+                            shape = shape,
                             colors = CardDefaults.cardColors(
-                                containerColor = if (selected) {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-                                }
-                            )
+                                containerColor = Color.Transparent
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                         ) {
                             Row(
                                 modifier = Modifier

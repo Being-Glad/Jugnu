@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -24,6 +24,9 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.metrolist.music.constants.PureBlackKey
+import com.metrolist.music.utils.rememberPreference
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -85,6 +88,7 @@ import com.metrolist.music.R
 import com.metrolist.music.db.entities.RecognitionHistory
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.utils.backToMain
+import com.metrolist.music.ui.utils.glassCard
 import com.metrolist.shazamkit.models.RecognitionResult
 import com.metrolist.shazamkit.models.RecognitionStatus
 import kotlinx.coroutines.Dispatchers
@@ -490,11 +494,33 @@ private fun SuccessState(
         onSaveToHistory(result)
     }
 
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.padding(horizontal = 16.dp),
+    val isSystemDark = isSystemInDarkTheme()
+    val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
+    val isPureBlack = pureBlack && isSystemDark
+    val shape = RoundedCornerShape(28.dp)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .then(
+                if (isPureBlack) {
+                    Modifier.background(Color.Black, shape)
+                } else {
+                    Modifier.glassCard(shape = shape)
+                }
+            ),
+        shape = shape,
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.padding(24.dp),
+        ) {
         // Album art
         Card(
             modifier =
@@ -592,6 +618,7 @@ private fun SuccessState(
             }
         }
     }
+}
 }
 
 @Composable

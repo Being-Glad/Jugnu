@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -65,6 +65,7 @@ import com.metrolist.music.constants.ResumeOnBluetoothConnectKey
 import com.metrolist.music.constants.SeekExtraSeconds
 import com.metrolist.music.constants.ShufflePlaylistFirstKey
 import com.metrolist.music.constants.SimilarContent
+import com.metrolist.music.constants.ValidateStreamsKey
 import com.metrolist.music.constants.SkipSilenceInstantKey
 import com.metrolist.music.constants.SkipSilenceKey
 import com.metrolist.music.constants.StopMusicOnTaskClearKey
@@ -178,6 +179,10 @@ fun PlayerSettings(
     val (similarContentEnabled, similarContentEnabledChange) = rememberPreference(
         key = SimilarContent,
         defaultValue = true
+    )
+    val (validateStreams, onValidateStreamsChange) = rememberPreference(
+        key = ValidateStreamsKey,
+        defaultValue = false
     )
     val (autoSkipNextOnError, onAutoSkipNextOnErrorChange) = rememberPreference(
         AutoSkipNextOnErrorKey,
@@ -601,6 +606,27 @@ fun PlayerSettings(
                         )
                     },
                     onClick = { onSeekExtraSeconds(!seekExtraSeconds) }
+                ))
+                add(Material3SettingsItem(
+                    icon = painterResource(R.drawable.speed),
+                    title = { Text(stringResource(R.string.validate_streams)) },
+                    description = { Text(stringResource(R.string.validate_streams_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = validateStreams,
+                            onCheckedChange = onValidateStreamsChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (validateStreams) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onValidateStreamsChange(!validateStreams) }
                 ))
             }
         )

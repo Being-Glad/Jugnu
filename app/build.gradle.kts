@@ -20,7 +20,7 @@ if (localPropertiesFile.exists()) {
     localProperties.load(localPropertiesFile.inputStream())
 }
 
-val baseApplicationId = "com.metrolist.music"
+val baseApplicationId = "com.jugnu.music"
 val applicationIdOverride = System.getenv("METROLIST_APPLICATION_ID")?.takeIf { it.isNotBlank() }
 val appNameOverride = System.getenv("METROLIST_APP_NAME")?.takeIf { it.isNotBlank() }
 val debugKeystorePathOverride = System.getenv("METROLIST_DEBUG_KEYSTORE_PATH")?.takeIf { it.isNotBlank() }
@@ -96,9 +96,9 @@ android {
         applicationId = applicationIdOverride ?: baseApplicationId
         minSdk = 26
         targetSdk = 36
-        versionCode = 148
-        versionName = "13.5.0"
-        resValue("string", "app_name", appNameOverride ?: "Metrolist")
+        versionCode = 1
+        versionName = "v1.0.0"
+        resValue("string", "app_name", appNameOverride ?: "Jugnu")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -167,10 +167,10 @@ android {
             keyPassword = debugKeyPassword
         }
         create("release") {
-            storeFile = file("keystore/release.keystore")
-            storePassword = System.getenv("STORE_PASSWORD")
-            keyAlias = System.getenv("KEY_ALIAS")
-            keyPassword = System.getenv("KEY_PASSWORD")
+            storeFile = file("release.keystore")
+            storePassword = "jugnu_password"
+            keyAlias = "jugnu_key"
+            keyPassword = "jugnu_password"
         }
         getByName("debug") {
             keyAlias = "androiddebugkey"
@@ -190,6 +190,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            signingConfig = signingConfigs.getByName("release")
         }
         debug {
             if (applicationIdOverride == null) {
@@ -197,7 +198,7 @@ android {
             }
             isDebuggable = true
             if (appNameOverride == null) {
-                resValue("string", "app_name", "Metrolist Debug")
+                resValue("string", "app_name", "Jugnu Debug")
             }
             signingConfig =
                 if (workflowDebugKeystoreFile != null) {

@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -25,6 +25,7 @@ import com.metrolist.music.models.ItemsPage
 import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.get
 import com.metrolist.music.utils.reportException
+import com.metrolist.music.db.MusicDatabase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +38,7 @@ class OnlineSearchViewModel
 @Inject
 constructor(
     @ApplicationContext val context: Context,
+    val database: MusicDatabase,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     val query = try {
@@ -47,6 +49,10 @@ constructor(
     val filter = MutableStateFlow<YouTube.SearchFilter?>(null)
     var summaryPage by mutableStateOf<SearchSummaryPage?>(null)
     val viewStateMap = mutableStateMapOf<String, ItemsPage?>()
+
+    val localSongs = database.searchSongs(query, 5)
+    val localAlbums = database.searchAlbums(query, 3)
+    val localArtists = database.searchArtists(query, 3)
 
     private suspend fun loadSummaryPage() {
         if (summaryPage == null) {

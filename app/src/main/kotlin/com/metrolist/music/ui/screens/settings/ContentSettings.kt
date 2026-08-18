@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -84,6 +83,7 @@ import com.metrolist.music.constants.ShowArtistSubscriberCountKey
 import com.metrolist.music.constants.ShowMonthlyListenersKey
 import com.metrolist.music.constants.ShowWrappedCardKey
 import com.metrolist.music.constants.TopSize
+import com.metrolist.music.ui.component.DefaultDialog
 import com.metrolist.music.ui.component.EnumDialog
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.Material3SettingsGroup
@@ -182,96 +182,17 @@ fun ContentSettings(
         var tempProxyPassword by rememberSaveable { mutableStateOf(proxyPassword) }
         var authEnabled by rememberSaveable { mutableStateOf(proxyUsername.isNotBlank() || proxyPassword.isNotBlank()) }
 
-        AlertDialog(
-            onDismissRequest = { showProxyConfigurationDialog = false },
+        DefaultDialog(
+            onDismiss = { showProxyConfigurationDialog = false },
             title = {
                 Text(stringResource(R.string.config_proxy))
             },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    ExposedDropdownMenuBox(
-                        expanded = expandedDropdown,
-                        onExpandedChange = { expandedDropdown = !expandedDropdown },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        OutlinedTextField(
-                            value = proxyType.name,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text(stringResource(R.string.proxy_type)) },
-                            trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDropdown)
-                            },
-                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                            modifier = Modifier
-                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                                .fillMaxWidth()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = expandedDropdown,
-                            onDismissRequest = { expandedDropdown = false }
-                        ) {
-                            listOf(Proxy.Type.HTTP, Proxy.Type.SOCKS).forEach { type ->
-                                DropdownMenuItem(
-                                    text = { Text(type.name) },
-                                    onClick = {
-                                        onProxyTypeChange(type)
-                                        expandedDropdown = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    OutlinedTextField(
-                        value = tempProxyUrl,
-                        onValueChange = { tempProxyUrl = it },
-                        label = { Text(stringResource(R.string.proxy_url)) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(stringResource(R.string.enable_authentication))
-                        Switch(
-                            checked = authEnabled,
-                            onCheckedChange = {
-                                authEnabled = it
-                                if (!it) {
-                                    tempProxyUsername = ""
-                                    tempProxyPassword = ""
-                                }
-                            }
-                        )
-                    }
-
-                    AnimatedVisibility(visible = authEnabled) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedTextField(
-                                value = tempProxyUsername,
-                                onValueChange = { tempProxyUsername = it },
-                                label = { Text(stringResource(R.string.proxy_username)) },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            OutlinedTextField(
-                                value = tempProxyPassword,
-                                onValueChange = { tempProxyPassword = it },
-                                label = { Text(stringResource(R.string.proxy_password)) },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    }
+            buttons = {
+                TextButton(onClick = {
+                    showProxyConfigurationDialog = false
+                }) {
+                    Text(stringResource(R.string.cancel))
                 }
-            },
-            confirmButton = {
                 TextButton(
                     onClick = {
                         onProxyUrlChange(tempProxyUrl)
@@ -282,15 +203,91 @@ fun ContentSettings(
                 ) {
                     Text(stringResource(R.string.save))
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showProxyConfigurationDialog = false
-                }) {
-                    Text(stringResource(R.string.cancel))
+            }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                ExposedDropdownMenuBox(
+                    expanded = expandedDropdown,
+                    onExpandedChange = { expandedDropdown = !expandedDropdown },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = proxyType.name,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text(stringResource(R.string.proxy_type)) },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDropdown)
+                        },
+                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                        modifier = Modifier
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                            .fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedDropdown,
+                        onDismissRequest = { expandedDropdown = false }
+                    ) {
+                        listOf(Proxy.Type.HTTP, Proxy.Type.SOCKS).forEach { type ->
+                            DropdownMenuItem(
+                                text = { Text(type.name) },
+                                onClick = {
+                                    onProxyTypeChange(type)
+                                    expandedDropdown = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = tempProxyUrl,
+                    onValueChange = { tempProxyUrl = it },
+                    label = { Text(stringResource(R.string.proxy_url)) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(stringResource(R.string.enable_authentication))
+                    Switch(
+                        checked = authEnabled,
+                        onCheckedChange = {
+                            authEnabled = it
+                            if (!it) {
+                                tempProxyUsername = ""
+                                tempProxyPassword = ""
+                            }
+                        }
+                    )
+                }
+
+                AnimatedVisibility(visible = authEnabled) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = tempProxyUsername,
+                            onValueChange = { tempProxyUsername = it },
+                            label = { Text(stringResource(R.string.proxy_username)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = tempProxyPassword,
+                            onValueChange = { tempProxyPassword = it },
+                            label = { Text(stringResource(R.string.proxy_password)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
-        )
+        }
     }
 
     var showContentLanguageDialog by rememberSaveable {
@@ -358,178 +355,177 @@ fun ContentSettings(
     }
 
     if (showProviderSelectionDialog) {
-        AlertDialog(
-            onDismissRequest = { showProviderSelectionDialog = false },
+        DefaultDialog(
+            onDismiss = { showProviderSelectionDialog = false },
             title = { Text(stringResource(R.string.lyrics_provider_selection)) },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(stringResource(R.string.enable_lrclib))
-                            Text(
-                                text = stringResource(R.string.enable_lrclib_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(
-                            checked = enableLrclib,
-                            onCheckedChange = onEnableLrclibChange,
-                            thumbContent = {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (enableLrclib) R.drawable.check else R.drawable.close
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                                )
-                            }
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(stringResource(R.string.enable_kugou))
-                            Text(
-                                text = stringResource(R.string.enable_kugou_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(
-                            checked = enableKugou,
-                            onCheckedChange = onEnableKugouChange,
-                            thumbContent = {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (enableKugou) R.drawable.check else R.drawable.close
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                                )
-                            }
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(stringResource(R.string.enable_better_lyrics))
-                            Text(
-                                text = stringResource(R.string.enable_better_lyrics_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(
-                            checked = enableBetterLyrics,
-                            onCheckedChange = onEnableBetterLyricsChange,
-                            thumbContent = {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (enableBetterLyrics) R.drawable.check else R.drawable.close
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                                )
-                            }
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(stringResource(R.string.enable_paxsenix))
-                            Text(
-                                text = stringResource(R.string.enable_paxsenix_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(
-                            checked = enablePaxsenix,
-                            onCheckedChange = onEnablePaxsenixChange,
-                            thumbContent = {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (enablePaxsenix) R.drawable.check else R.drawable.close
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                                )
-                            }
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(stringResource(R.string.enable_lyricsplus))
-                            Text(
-                                text = stringResource(R.string.enable_lyricsplus_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(
-                            checked = enableLyricsPlus,
-                            onCheckedChange = onEnableLyricsPlusChange,
-                            thumbContent = {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (enableLyricsPlus) R.drawable.check else R.drawable.close
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                                )
-                            }
-                        )
-                    }
-                    Column(modifier = Modifier.padding(2.dp)) {
-                        Text(
-                            text = stringResource(R.string.youtube_music_lyrics_note),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            },
-            confirmButton = {
+            buttons = {
                 TextButton(
                     onClick = { showProviderSelectionDialog = false }
                 ) {
                     Text(stringResource(R.string.close))
                 }
             }
-        )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(R.string.enable_lrclib))
+                        Text(
+                            text = stringResource(R.string.enable_lrclib_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = enableLrclib,
+                        onCheckedChange = onEnableLrclibChange,
+                        thumbContent = {
+                            Icon(
+                                painter = painterResource(
+                                    id = if (enableLrclib) R.drawable.check else R.drawable.close
+                                ),
+                                contentDescription = null,
+                                modifier = Modifier.size(SwitchDefaults.IconSize)
+                            )
+                        }
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(R.string.enable_kugou))
+                        Text(
+                            text = stringResource(R.string.enable_kugou_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = enableKugou,
+                        onCheckedChange = onEnableKugouChange,
+                        thumbContent = {
+                            Icon(
+                                painter = painterResource(
+                                    id = if (enableKugou) R.drawable.check else R.drawable.close
+                                ),
+                                contentDescription = null,
+                                modifier = Modifier.size(SwitchDefaults.IconSize)
+                            )
+                        }
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(R.string.enable_better_lyrics))
+                        Text(
+                            text = stringResource(R.string.enable_better_lyrics_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = enableBetterLyrics,
+                        onCheckedChange = onEnableBetterLyricsChange,
+                        thumbContent = {
+                            Icon(
+                                painter = painterResource(
+                                    id = if (enableBetterLyrics) R.drawable.check else R.drawable.close
+                                ),
+                                contentDescription = null,
+                                modifier = Modifier.size(SwitchDefaults.IconSize)
+                            )
+                        }
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(R.string.enable_paxsenix))
+                        Text(
+                            text = stringResource(R.string.enable_paxsenix_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = enablePaxsenix,
+                        onCheckedChange = onEnablePaxsenixChange,
+                        thumbContent = {
+                            Icon(
+                                painter = painterResource(
+                                    id = if (enablePaxsenix) R.drawable.check else R.drawable.close
+                                ),
+                                contentDescription = null,
+                                modifier = Modifier.size(SwitchDefaults.IconSize)
+                            )
+                        }
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(R.string.enable_lyricsplus))
+                        Text(
+                            text = stringResource(R.string.enable_lyricsplus_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = enableLyricsPlus,
+                        onCheckedChange = onEnableLyricsPlusChange,
+                        thumbContent = {
+                            Icon(
+                                painter = painterResource(
+                                    id = if (enableLyricsPlus) R.drawable.check else R.drawable.close
+                                ),
+                                contentDescription = null,
+                                modifier = Modifier.size(SwitchDefaults.IconSize)
+                            )
+                        }
+                    )
+                }
+                Column(modifier = Modifier.padding(2.dp)) {
+                    Text(
+                        text = stringResource(R.string.youtube_music_lyrics_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
     }
 
     var showQuickPicksDialog by rememberSaveable {
@@ -562,25 +558,10 @@ fun ContentSettings(
     if (showTopLengthDialog) {
         var tempLength by rememberSaveable { mutableFloatStateOf(lengthTop.toFloat()) }
 
-        AlertDialog(
-            onDismissRequest = { showTopLengthDialog = false },
+        DefaultDialog(
+            onDismiss = { showTopLengthDialog = false },
             title = { Text(stringResource(R.string.top_length)) },
-            text = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(tempLength.toInt().toString())
-                    Slider(
-                        value = tempLength,
-                        onValueChange = { tempLength = it },
-                        valueRange = 1f..100f,
-                        steps = 98
-                    )
-                }
-            },
-            confirmButton = {
+            buttons = {
                 TextButton(
                     onClick = {
                         onLengthTopChange(tempLength.toInt().toString())
@@ -590,7 +571,21 @@ fun ContentSettings(
                     Text(stringResource(R.string.save))
                 }
             }
-        )
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(tempLength.toInt().toString())
+                Slider(
+                    value = tempLength,
+                    onValueChange = { tempLength = it },
+                    valueRange = 1f..100f,
+                    steps = 98
+                )
+            }
+        }
     }
 
     var showProviderPriorityDialog by rememberSaveable {
@@ -628,44 +623,43 @@ fun ContentSettings(
             )
         }
 
-        AlertDialog(
-            onDismissRequest = { showProviderPriorityDialog = false },
+        DefaultDialog(
+            onDismiss = { showProviderPriorityDialog = false },
             title = { Text(stringResource(R.string.lyrics_provider_priority)) },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(300.dp)
-                ) {
-                    Text(
-                        stringResource(R.string.lyrics_provider_priority_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    DraggableLyricsProviderList(
-                        items = draggableItems,
-                        onItemsReordered = { reorderedItems ->
-                            val enabledOrder = reorderedItems.map { it.id }
-                            val disabledOrder = normalizedOrder.filter { it !in enabledProviders }
-                            onLyricsProviderOrderChange(
-                                LyricsProviderRegistry.serializeProviderOrder(enabledOrder + disabledOrder)
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                    )
-                }
-            },
-            confirmButton = {
+            buttons = {
                 TextButton(
                     onClick = { showProviderPriorityDialog = false }
                 ) {
                     Text(stringResource(R.string.close))
                 }
             }
-        )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp)
+            ) {
+                Text(
+                    stringResource(R.string.lyrics_provider_priority_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                DraggableLyricsProviderList(
+                    items = draggableItems,
+                    onItemsReordered = { reorderedItems ->
+                        val enabledOrder = reorderedItems.map { it.id }
+                        val disabledOrder = normalizedOrder.filter { it !in enabledProviders }
+                        onLyricsProviderOrderChange(
+                            LyricsProviderRegistry.serializeProviderOrder(enabledOrder + disabledOrder)
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                )
+            }
+        }
     }
 
     Column(

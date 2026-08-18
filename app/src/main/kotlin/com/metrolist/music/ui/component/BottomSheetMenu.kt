@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -120,7 +120,7 @@ fun AnimatedBottomSheet(
 fun BottomSheetMenu(
     modifier: Modifier = Modifier,
     state: MenuState,
-    background: Color = MaterialTheme.colorScheme.surface,
+    background: Color = Color(0xFF0D0E10),
 ) {
     val focusManager = LocalFocusManager.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)

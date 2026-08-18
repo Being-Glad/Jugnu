@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -311,8 +311,8 @@ fun LyricsImageCard(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(coverArtSize)
-                            .clip(RoundedCornerShape(3.dp))
-                            .border(1.dp, mainTextColor.copy(alpha = 0.16f), RoundedCornerShape(3.dp))
+                            .clip(RoundedCornerShape(12.dp))
+                            .border(1.dp, mainTextColor.copy(alpha = 0.16f), RoundedCornerShape(12.dp))
                     )
                     Spacer(modifier = Modifier.width(16.dp))
                     Column(

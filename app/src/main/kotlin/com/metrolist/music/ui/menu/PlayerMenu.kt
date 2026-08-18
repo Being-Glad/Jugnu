@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -94,6 +94,7 @@ import com.metrolist.music.playback.ExoDownloadService
 import com.metrolist.music.db.entities.Song
 import com.metrolist.music.db.entities.SpeedDialItem
 import com.metrolist.music.ui.component.BottomSheetState
+import com.metrolist.music.ui.component.DefaultDialog
 import com.metrolist.music.ui.component.ListDialog
 import com.metrolist.music.ui.component.Material3MenuGroup
 import com.metrolist.music.ui.component.Material3MenuItemData
@@ -346,7 +347,7 @@ fun PlayerMenu(
                                         painter = painterResource(R.drawable.radio),
                                         contentDescription = null,
                                         modifier = Modifier.size(32.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        tint = MaterialTheme.colorScheme.primary,
                                     )
                                 },
                                 text = stringResource(R.string.start_radio),
@@ -365,7 +366,7 @@ fun PlayerMenu(
                                     painter = painterResource(R.drawable.playlist_add),
                                     contentDescription = null,
                                     modifier = Modifier.size(32.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    tint = MaterialTheme.colorScheme.primary,
                                 )
                             },
                             text = stringResource(R.string.add_to_playlist),
@@ -377,7 +378,7 @@ fun PlayerMenu(
                                     painter = painterResource(R.drawable.link),
                                     contentDescription = null,
                                     modifier = Modifier.size(32.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    tint = MaterialTheme.colorScheme.primary,
                                 )
                             },
                             text = stringResource(R.string.copy_link),
@@ -794,13 +795,12 @@ fun TempoPitchDialog(onDismiss: () -> Unit) {
     val listenTogetherManager = com.metrolist.music.LocalListenTogetherManager.current
     val isInRoom = listenTogetherManager?.isInRoom ?: false
 
-    AlertDialog(
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-        onDismissRequest = onDismiss,
+    DefaultDialog(
+        onDismiss = onDismiss,
         title = {
             Text(stringResource(R.string.tempo_and_pitch))
         },
-        dismissButton = {
+        buttons = {
             TextButton(
                 onClick = {
                     tempo = 1f
@@ -810,42 +810,39 @@ fun TempoPitchDialog(onDismiss: () -> Unit) {
             ) {
                 Text(stringResource(R.string.reset))
             }
-        },
-        confirmButton = {
             TextButton(
                 onClick = onDismiss,
             ) {
                 Text(stringResource(android.R.string.ok))
             }
-        },
-        text = {
-            Column {
-                if (!isInRoom) {
-                    ValueAdjuster(
-                        icon = R.drawable.speed,
-                        currentValue = tempo,
-                        values = (0..35).map { round((0.25f + it * 0.05f) * 100) / 100 },
-                        onValueUpdate = {
-                            tempo = it
-                            updatePlaybackParameters()
-                        },
-                        valueText = { "x$it" },
-                        modifier = Modifier.padding(bottom = 12.dp),
-                    )
-                }
+        }
+    ) {
+        Column {
+            if (!isInRoom) {
                 ValueAdjuster(
-                    icon = R.drawable.discover_tune,
-                    currentValue = transposeValue,
-                    values = (-12..12).toList(),
+                    icon = R.drawable.speed,
+                    currentValue = tempo,
+                    values = (0..35).map { round((0.25f + it * 0.05f) * 100) / 100 },
                     onValueUpdate = {
-                        transposeValue = it
+                        tempo = it
                         updatePlaybackParameters()
                     },
-                    valueText = { "${if (it > 0) "+" else ""}$it" },
+                    valueText = { "x$it" },
+                    modifier = Modifier.padding(bottom = 12.dp),
                 )
             }
-        },
-    )
+            ValueAdjuster(
+                icon = R.drawable.discover_tune,
+                currentValue = transposeValue,
+                values = (-12..12).toList(),
+                onValueUpdate = {
+                    transposeValue = it
+                    updatePlaybackParameters()
+                },
+                valueText = { "${if (it > 0) "+" else ""}$it" },
+            )
+        }
+    }
 }
 
 @Composable
@@ -860,13 +857,12 @@ fun SpeedDialog(onDismiss: () -> Unit) {
     }
     val listenTogetherManager = com.metrolist.music.LocalListenTogetherManager.current
 
-    AlertDialog(
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-        onDismissRequest = onDismiss,
+    DefaultDialog(
+        onDismiss = onDismiss,
         title = {
             Text(stringResource(R.string.speed))
         },
-        dismissButton = {
+        buttons = {
             TextButton(
                 onClick = {
                     speed = 1f
@@ -875,30 +871,27 @@ fun SpeedDialog(onDismiss: () -> Unit) {
             ) {
                 Text(stringResource(R.string.reset))
             }
-        },
-        confirmButton = {
             TextButton(
                 onClick = onDismiss,
             ) {
                 Text(stringResource(android.R.string.ok))
             }
-        },
-        text = {
-            Column {
-                ValueAdjuster(
-                    icon = R.drawable.speed,
-                    currentValue = speed,
-                    values = (0..35).map { round((0.25f + it * 0.05f) * 100) / 100 },
-                    onValueUpdate = {
-                        speed = it
-                        updatePlaybackParameters()
-                    },
-                    valueText = { "x$it" },
-                    modifier = Modifier.padding(bottom = 12.dp),
-                )
-            }
-        },
-    )
+        }
+    ) {
+        Column {
+            ValueAdjuster(
+                icon = R.drawable.speed,
+                currentValue = speed,
+                values = (0..35).map { round((0.25f + it * 0.05f) * 100) / 100 },
+                onValueUpdate = {
+                    speed = it
+                    updatePlaybackParameters()
+                },
+                valueText = { "x$it" },
+                modifier = Modifier.padding(bottom = 12.dp),
+            )
+        }
+    }
 }
 @Composable
 fun <T> ValueAdjuster(
@@ -1465,7 +1458,7 @@ fun ListenTogetherDialog(
                                 Spacer(modifier = Modifier.height(12.dp))
                                 val inviteLink =
                                     remember(room.roomCode) {
-                                        "https://metrolist.cc/listen?code=${room.roomCode}"
+                                        "jugnu://listen?code=${room.roomCode}"
                                     }
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,

@@ -1,11 +1,17 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
 package com.metrolist.music.ui.screens.recognition
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.metrolist.music.constants.PureBlackKey
+import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.ui.utils.glassCard
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -238,17 +244,31 @@ private fun RecognitionHistoryItem(
 ) {
     val dateFormatter = remember { DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm") }
 
+    val isSystemDark = isSystemInDarkTheme()
+    val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
+    val isPureBlack = pureBlack && isSystemDark
+    val shape = RoundedCornerShape(ThumbnailCornerRadius)
+
     Card(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
-                .clickable { onClick() },
-        shape = RoundedCornerShape(ThumbnailCornerRadius),
+                .clip(shape)
+                .clickable { onClick() }
+                .then(
+                    if (isPureBlack) {
+                        Modifier.background(Color.Black, shape)
+                    } else {
+                        Modifier.glassCard(shape = shape)
+                    }
+                ),
+        shape = shape,
         colors =
             CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                containerColor = Color.Transparent,
             ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(
             modifier =

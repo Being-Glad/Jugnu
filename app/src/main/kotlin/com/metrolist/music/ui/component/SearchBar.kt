@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -63,6 +63,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.metrolist.music.constants.AppBarHeight
+import com.metrolist.music.ui.utils.glassCard
 
 @ExperimentalMaterial3Api
 @Composable
@@ -79,7 +80,7 @@ fun TopSearch(
     trailingIcon: @Composable (() -> Unit)? = null,
     shape: Shape? = null,
     colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        containerColor = Color.Transparent
     ),
     scrollBehavior: TopAppBarScrollBehavior? = null,
     windowInsets: WindowInsets = WindowInsets.systemBars,
@@ -175,7 +176,13 @@ private fun SearchBarInputField(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .height(InputFieldHeight),
+            .height(InputFieldHeight)
+            .padding(horizontal = 4.dp, vertical = 2.dp)
+            .glassCard(
+                cornerRadius = 24.dp,
+                shape = RoundedCornerShape(24.dp),
+                backgroundColor = Color(0xFF121316).copy(alpha = 0.65f)
+            ),
     ) {
         if (leadingIcon != null) {
             Spacer(Modifier.width(SearchBarIconOffsetX))

@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -31,11 +31,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.metrolist.music.ui.utils.glassCard
+import androidx.compose.material3.HorizontalDivider
 
 /**
- * A Material 3 Expressive style settings group component
+ * A seamless, borderless Niagara-style settings group component
  * @param title The title of the settings group
  * @param items List of settings items to display
  */
@@ -45,48 +50,36 @@ fun Material3SettingsGroup(
     items: List<Material3SettingsItem>,
     useLowContrast: Boolean = false
 ) {
+    if (items.isEmpty()) return
+
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = Modifier.fillMaxWidth()
     ) {
-        // Section title
+        // Section header title
         title?.let {
             Text(
                 text = it,
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                    fontSize = 13.sp,
+                    letterSpacing = 0.5.sp
+                ),
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 8.dp, top = 8.dp)
+                modifier = Modifier.padding(start = 12.dp, top = 20.dp, bottom = 4.dp)
             )
         }
 
-        // Settings items
+        // Seamless, boxless list items
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            modifier = Modifier.fillMaxWidth()
         ) {
             items.forEachIndexed { index, item ->
-                val shape = when {
-                    items.size == 1 -> RoundedCornerShape(24.dp)
-                    index == 0 -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 6.dp, bottomEnd = 6.dp)
-                    index == items.size - 1 -> RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
-                    else -> RoundedCornerShape(6.dp)
-                }
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .animateContentSize(),
-                    shape = shape,
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (!useLowContrast) {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                        } else {
-                            MaterialTheme.colorScheme.surfaceContainerLow
-                        }
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Material3SettingsItemRow(item = item)
+                Material3SettingsItemRow(item = item)
+                if (index < items.size - 1) {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.12f),
+                        modifier = Modifier.padding(start = 68.dp, end = 12.dp)
+                    )
                 }
             }
         }
@@ -103,14 +96,15 @@ private fun Material3SettingsItemRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
             .clickable(
                 enabled = item.enabled && item.onClick != null,
                 onClick = { item.onClick?.invoke() }
             )
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Custom leading content or Icon with background
+        // Custom leading content or Icon with subtle background
         if (item.leadingContent != null) {
             item.leadingContent.invoke()
             Spacer(modifier = Modifier.width(16.dp))
@@ -120,9 +114,10 @@ private fun Material3SettingsItemRow(
                     .size(40.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(
-                        MaterialTheme.colorScheme.primary.copy(
-                            alpha = if (item.isHighlighted) 0.15f else 0.1f
-                        )
+                        if (item.isHighlighted)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -142,8 +137,8 @@ private fun Material3SettingsItemRow(
                             else if (item.isHighlighted)
                                 MaterialTheme.colorScheme.primary
                             else
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
-                            modifier = Modifier.size(24.dp)
+                                MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                 } else {
@@ -155,8 +150,8 @@ private fun Material3SettingsItemRow(
                         else if (item.isHighlighted)
                             MaterialTheme.colorScheme.primary
                         else
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
-                        modifier = Modifier.size(24.dp)
+                            MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
             }
@@ -171,6 +166,8 @@ private fun Material3SettingsItemRow(
             // Title content
             ProvideTextStyle(
                 MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                    fontSize = 16.sp,
                     color = if (!item.enabled) 
                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                     else
@@ -184,11 +181,12 @@ private fun Material3SettingsItemRow(
             item.description?.let { desc ->
                 Spacer(modifier = Modifier.height(2.dp))
                 ProvideTextStyle(
-                    MaterialTheme.typography.bodyMedium.copy(
+                    MaterialTheme.typography.bodySmall.copy(
+                        fontSize = 13.sp,
                         color = if (!item.enabled)
                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                         else
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
                     )
                 ) {
                     desc()
@@ -196,10 +194,18 @@ private fun Material3SettingsItemRow(
             }
         }
 
-        // Trailing content
-        item.trailingContent?.let { trailing ->
+        // Trailing content or navigation chevron
+        if (item.trailingContent != null) {
             Spacer(modifier = Modifier.width(8.dp))
-            trailing()
+            item.trailingContent.invoke()
+        } else if (item.onClick != null) {
+            Spacer(modifier = Modifier.width(8.dp))
+            Icon(
+                painter = painterResource(com.metrolist.music.R.drawable.navigate_next),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }

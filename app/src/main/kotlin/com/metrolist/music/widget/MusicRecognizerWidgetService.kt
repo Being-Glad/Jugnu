@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -344,8 +344,8 @@ class MusicRecognizerWidgetService : Service() {
     // ─── Constants ────────────────────────────────────────────────────────────
 
     companion object {
-        const val ACTION_START_RECOGNITION = "com.metrolist.music.widget.recognizer.START"
-        const val ACTION_STOP_RECOGNITION = "com.metrolist.music.widget.recognizer.STOP"
+        const val ACTION_START_RECOGNITION = "com.jugnu.music.widget.recognizer.START"
+        const val ACTION_STOP_RECOGNITION = "com.jugnu.music.widget.recognizer.STOP"
 
         const val PREFS_NAME = "recognizer_widget_prefs"
         const val PREF_STATE = "state"

@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -118,6 +118,9 @@ import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalListenTogetherManager
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
+import com.metrolist.music.constants.PureBlackKey
+import com.metrolist.music.ui.utils.glassCard
+import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.constants.AiProviderKey
 import com.metrolist.music.constants.AiSystemPromptKey
 import com.metrolist.music.constants.DarkModeKey
@@ -128,6 +131,7 @@ import com.metrolist.music.constants.LyricsAnimationStyleKey
 import com.metrolist.music.constants.LyricsClickKey
 import com.metrolist.music.constants.LyricsGlowEffectKey
 import com.metrolist.music.constants.LyricsLineSpacingKey
+import com.metrolist.music.constants.LyricsDisplayPresetKey
 import com.metrolist.music.constants.LyricsRomanizeAsMainKey
 import com.metrolist.music.constants.LyricsRomanizeCyrillicByLineKey
 import com.metrolist.music.constants.LyricsRomanizeList
@@ -154,6 +158,7 @@ import com.metrolist.music.lyrics.LyricsUtils.isJapanese
 import com.metrolist.music.lyrics.LyricsUtils.isKorean
 import com.metrolist.music.lyrics.LyricsUtils.isKyrgyz
 import com.metrolist.music.lyrics.LyricsUtils.isMacedonian
+import com.metrolist.music.lyrics.LyricsUtils.isPunjabi
 import com.metrolist.music.lyrics.LyricsUtils.isRussian
 import com.metrolist.music.lyrics.LyricsUtils.isSerbian
 import com.metrolist.music.lyrics.LyricsUtils.isUkrainian
@@ -163,6 +168,7 @@ import com.metrolist.music.lyrics.LyricsUtils.romanizeCyrillic
 import com.metrolist.music.lyrics.LyricsUtils.romanizeHindi
 import com.metrolist.music.lyrics.LyricsUtils.romanizeJapanese
 import com.metrolist.music.lyrics.LyricsUtils.romanizeKorean
+import com.metrolist.music.lyrics.LyricsUtils.romanizePunjabi
 import com.metrolist.music.lyrics.lyricsTextLooksSynced
 import com.metrolist.music.ui.component.shimmer.ShimmerHost
 import com.metrolist.music.ui.component.shimmer.TextPlaceholder
@@ -213,6 +219,7 @@ fun OriginalLyrics(
     val romanizeLyricsList = rememberPreference(LyricsRomanizeList, "")
     val romanizeAsMain by rememberPreference(LyricsRomanizeAsMainKey, false)
     val romanizeCyrillicByLine by rememberPreference(LyricsRomanizeCyrillicByLineKey, false)
+    val lyricsDisplayPreset by rememberPreference(LyricsDisplayPresetKey, "SMART")
     val lyricsGlowEffect by rememberPreference(LyricsGlowEffectKey, false)
     val lyricsAnimationStyle by rememberEnumPreference(LyricsAnimationStyleKey, LyricsAnimationStyle.APPLE)
     val lyricsTextSize by rememberPreference(LyricsTextSizeKey, 24f)
@@ -293,6 +300,10 @@ fun OriginalLyrics(
                                     value = romanizeHindi(entry.text)
                                 }
 
+                                "Punjabi" in enabledLanguages && isPunjabi(text) -> {
+                                    value = romanizePunjabi(entry.text)
+                                }
+
                                 "Ukrainian" in enabledLanguages && isUkrainian(text) -> {
                                     value = romanizeCyrillic(entry.text)
                                 }
@@ -342,6 +353,7 @@ fun OriginalLyrics(
                             "Korean" in enabledLanguages && isKorean(text) -> value = romanizeKorean(line)
                             "Chinese" in enabledLanguages && isChinese(text) -> value = romanizeChinese(line)
                             "Hindi" in enabledLanguages && isHindi(text) -> value = romanizeHindi(line)
+                            "Punjabi" in enabledLanguages && isPunjabi(text) -> value = romanizePunjabi(line)
                             "Ukrainian" in enabledLanguages && isUkrainian(text) -> value = romanizeCyrillic(line)
                             "Russian" in enabledLanguages && isRussian(text) -> value = romanizeCyrillic(line)
                             "Serbian" in enabledLanguages && isSerbian(text) -> value = romanizeCyrillic(line)
@@ -577,6 +589,7 @@ fun OriginalLyrics(
         } else if (lastPreviewTime != 0L) {
             delay(LyricsPreviewTime)
             lastPreviewTime = 0L
+            isAutoScrollEnabled = true
         }
     }
 
@@ -1089,10 +1102,32 @@ fun OriginalLyrics(
                             val romanizedText = romanizedTextState
                             val isRomanizedAvailable = romanizedText != null
 
-                            val mainText = if (romanizeAsMain && isRomanizedAvailable) romanizedText else item.text
-                            val subText = if (romanizeAsMain && isRomanizedAvailable) item.text else romanizedText
+                            val (mainText, subText) = run {
+                                if (lyricsDisplayPreset == "SMART") {
+                                    if (com.metrolist.music.lyrics.LyricsUtils.isLatinOrEnglish(item.text)) {
+                                        Pair(item.text, null)
+                                    } else if (com.metrolist.music.lyrics.LyricsUtils.isHindi(item.text)) {
+                                        Pair(item.text, romanizedText)
+                                    } else {
+                                        if (isRomanizedAvailable) {
+                                            Pair(romanizedText, item.text)
+                                        } else {
+                                            Pair(item.text, null)
+                                        }
+                                    }
+                                } else {
+                                    val main = if (romanizeAsMain && isRomanizedAvailable) romanizedText else item.text
+                                    val sub = if (romanizeAsMain && isRomanizedAvailable) item.text else romanizedText
+                                    Pair(main, sub)
+                                }
+                            }
 
-                            val hasWordTimings = if (romanizeAsMain && isRomanizedAvailable) false else item.words?.isNotEmpty() == true
+                            val hasWordTimings = if (lyricsDisplayPreset == "SMART") {
+                                val isRomanizedAsMain = !com.metrolist.music.lyrics.LyricsUtils.isLatinOrEnglish(item.text) && !com.metrolist.music.lyrics.LyricsUtils.isHindi(item.text) && isRomanizedAvailable
+                                if (isRomanizedAsMain) false else item.words?.isNotEmpty() == true
+                            } else {
+                                if (romanizeAsMain && isRomanizedAvailable) false else item.words?.isNotEmpty() == true
+                            }
 
                             // Word-by-word animation styles
                             if (hasWordTimings && lyricsAnimationStyle == LyricsAnimationStyle.NONE) {
@@ -1731,7 +1766,7 @@ fun OriginalLyrics(
             contentAlignment = Alignment.BottomCenter,
         ) {
             AnimatedVisibility(
-                visible = !isAutoScrollEnabled && isSynced && !isSelectionModeActive,
+                visible = false,
                 enter = slideInVertically { it } + fadeIn(),
                 exit = slideOutVertically { it } + fadeOut(),
             ) {
@@ -1805,10 +1840,22 @@ fun OriginalLyrics(
 
         if (showProgressDialog) {
             BasicAlertDialog(onDismissRequest = { /* Don't dismiss */ }) {
-                Card( // Use Card for better styling
-                    shape = MaterialTheme.shapes.medium,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                val isSystemDark = isSystemInDarkTheme()
+                val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
+                val isPureBlack = pureBlack && isSystemDark
+                val shape = RoundedCornerShape(24.dp)
+                Card(
+                    shape = shape,
+                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    modifier = Modifier
+                        .then(
+                            if (isPureBlack) {
+                                Modifier.background(Color.Black, shape)
+                            } else {
+                                Modifier.glassCard(shape = shape)
+                            }
+                        ),
                 ) {
                     Box(modifier = Modifier.padding(32.dp)) {
                         Text(
@@ -1823,17 +1870,24 @@ fun OriginalLyrics(
         if (showShareDialog && shareDialogData != null) {
             val (lyricsText, songTitle, artists) = shareDialogData!! // Renamed 'lyrics' to 'lyricsText' for clarity
             BasicAlertDialog(onDismissRequest = { showShareDialog = false }) {
+                val isSystemDark = isSystemInDarkTheme()
+                val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
+                val isPureBlack = pureBlack && isSystemDark
+                val shape = RoundedCornerShape(24.dp)
                 Card(
-                    shape = MaterialTheme.shapes.medium,
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
+                    shape = shape,
+                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(0.85f)
+                        .then(
+                            if (isPureBlack) {
+                                Modifier.background(Color.Black, shape)
+                            } else {
+                                Modifier.glassCard(shape = shape)
+                            }
                         ),
-                    modifier =
-                        Modifier
-                            .padding(16.dp)
-                            .fillMaxWidth(0.85f),
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(
@@ -2007,12 +2061,24 @@ fun OriginalLyrics(
             }
 
             BasicAlertDialog(onDismissRequest = { showColorPickerDialog = false }) {
+                val isSystemDark = isSystemInDarkTheme()
+                val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
+                val isPureBlack = pureBlack && isSystemDark
+                val shape = RoundedCornerShape(24.dp)
                 Card(
-                    shape = RoundedCornerShape(20.dp),
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
+                    shape = shape,
+                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
+                        .then(
+                            if (isPureBlack) {
+                                Modifier.background(Color.Black, shape)
+                            } else {
+                                Modifier.glassCard(shape = shape)
+                            }
+                        ),
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -2216,10 +2282,10 @@ fun OriginalLyrics(
 }
 
 // Professional page animation constants inspired by Metrolist design - slower for smoothness
-private const val METROLIST_AUTO_SCROLL_DURATION = 1500L // Much slower auto-scroll for smooth transitions
-private const val METROLIST_INITIAL_SCROLL_DURATION = 1000L // Slower initial positioning
-private const val METROLIST_SEEK_DURATION = 800L // Slower user interaction
-private const val METROLIST_FAST_SEEK_DURATION = 600L // Less aggressive seeking
+private const val JUGNU_AUTO_SCROLL_DURATION = 1500L // Much slower auto-scroll for smooth transitions
+private const val JUGNU_INITIAL_SCROLL_DURATION = 1000L // Slower initial positioning
+private const val JUGNU_SEEK_DURATION = 800L // Slower user interaction
+private const val JUGNU_FAST_SEEK_DURATION = 600L // Less aggressive seeking
 
 // Lyrics constants
-val LyricsPreviewTime = 2.seconds
+val LyricsPreviewTime = 6.seconds

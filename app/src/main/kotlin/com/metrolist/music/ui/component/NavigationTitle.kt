@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -35,6 +35,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.metrolist.music.R
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
+
 @Composable
 fun NavigationTitle(
     title: String,
@@ -46,34 +55,43 @@ fun NavigationTitle(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
             .clickable(enabled = onClick != null) {
                 onClick?.invoke()
             }
-            .padding(horizontal = 12.dp, vertical = 12.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
+        // Glowing dynamic neon bullet prefix
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .background(MaterialTheme.colorScheme.primary, CircleShape)
+        )
+        
+        
+
         thumbnail?.invoke()
 
         Column(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.weight(1f)
         ) {
-            label?.let { label ->
+            label?.let { labelVal ->
                 Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
+                    text = labelVal,
+                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.5.sp),
                     overflow = TextOverflow.Ellipsis,
                 )
             }
 
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium.copy(letterSpacing = 0.sp),
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurface,
                 overflow = TextOverflow.Ellipsis,
                 maxLines = 1,
             )

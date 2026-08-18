@@ -72,6 +72,10 @@ import com.metrolist.innertube.pages.SearchSummary
 import com.metrolist.innertube.pages.SearchSummaryPage
 import io.ktor.client.call.body
 import io.ktor.client.statement.bodyAsText
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -81,6 +85,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
 import java.net.Proxy
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
 
 /**
@@ -497,17 +502,30 @@ object YouTube {
                                 ?.url!!,
                         explicit = false, // TODO: Extract explicit badge for albums from YouTube response
                     )
+                val secondaryShelf = response.contents.twoColumnBrowseResultsRenderer.secondaryContents
+                    ?.sectionListRenderer
+                    ?.contents
+                    ?.firstOrNull()
+                val inlineShelfContents = secondaryShelf?.musicPlaylistShelfRenderer?.contents
+                    ?: secondaryShelf?.musicShelfRenderer?.contents
+                val inlineSongs = inlineShelfContents?.getItems()?.mapNotNull {
+                    AlbumPage.getSong(it, albumItem)
+                }
+
+                val finalSongs = if (!withSongs) {
+                    emptyList()
+                } else if (!inlineSongs.isNullOrEmpty()) {
+                    inlineSongs
+                } else {
+                    albumSongs(
+                        playlistId,
+                        albumItem,
+                    ).getOrThrow()
+                }
+
                 return@runCatching AlbumPage(
                     album = albumItem,
-                    songs =
-                        if (withSongs) {
-                            albumSongs(
-                                playlistId,
-                                albumItem,
-                            ).getOrThrow()
-                        } else {
-                            emptyList()
-                        },
+                    songs = finalSongs,
                     otherVersions =
                         response.contents.twoColumnBrowseResultsRenderer.secondaryContents
                             ?.sectionListRenderer
@@ -3327,34 +3345,44 @@ object YouTube {
      */
     const val MAX_UPLOAD_SIZE = 314572800L
 
+    private val artistIdCache = ConcurrentHashMap<String, String>()
+
     suspend fun resolveArtistIds(items: List<YTItem>): List<YTItem> {
         val missingNames = mutableSetOf<String>()
         for (item in items) {
             when (item) {
-                is SongItem -> item.artists.filter { it.id == null }.forEach { missingNames.add(it.name) }
-                is AlbumItem -> item.artists?.filter { it.id == null }?.forEach { missingNames.add(it.name) }
-                is PlaylistItem -> item.author?.let { if (it.id == null) missingNames.add(it.name) }
-                is EpisodeItem -> item.author?.let { if (it.id == null) missingNames.add(it.name) }
-                is PodcastItem -> item.author?.let { if (it.id == null) missingNames.add(it.name) }
+                is SongItem -> item.artists.filter { it.id == null && !artistIdCache.containsKey(it.name) }.forEach { missingNames.add(it.name) }
+                is AlbumItem -> item.artists?.filter { it.id == null && !artistIdCache.containsKey(it.name) }?.forEach { missingNames.add(it.name) }
+                is PlaylistItem -> item.author?.let { if (it.id == null && !artistIdCache.containsKey(it.name)) missingNames.add(it.name) }
+                is EpisodeItem -> item.author?.let { if (it.id == null && !artistIdCache.containsKey(it.name)) missingNames.add(it.name) }
+                is PodcastItem -> item.author?.let { if (it.id == null && !artistIdCache.containsKey(it.name)) missingNames.add(it.name) }
                 else -> {}
             }
         }
 
-        if (missingNames.isEmpty()) return items
-
-        val resolved = mutableMapOf<String, String>()
-        for (name in missingNames) {
-            val searchResult = search(name, SearchFilter.FILTER_ARTIST).getOrNull()
-            val normalizedName = name.trim()
-            val artistId = searchResult?.items
-                ?.filterIsInstance<ArtistItem>()
-                ?.firstOrNull { candidate ->
-                    candidate.title.trim().equals(normalizedName, ignoreCase = true)
-                }?.id
-            if (artistId != null) resolved[name] = artistId
+        if (missingNames.isNotEmpty()) {
+            coroutineScope {
+                missingNames.take(8).map { name ->
+                    async(Dispatchers.IO) {
+                        try {
+                            val searchResult = search(name, SearchFilter.FILTER_ARTIST).getOrNull()
+                            val normalizedName = name.trim()
+                            val artistId = searchResult?.items
+                                ?.filterIsInstance<ArtistItem>()
+                                ?.firstOrNull { candidate ->
+                                    candidate.title.trim().equals(normalizedName, ignoreCase = true)
+                                }?.id
+                            if (artistId != null) {
+                                artistIdCache[name] = artistId
+                            }
+                        } catch (_: Exception) {
+                        }
+                    }
+                }.awaitAll()
+            }
         }
 
-        fun Artist.resolve() = if (id == null) resolved[name]?.let { copy(id = it) } ?: this else this
+        fun Artist.resolve() = if (id == null) artistIdCache[name]?.let { copy(id = it) } ?: this else this
         return items.map { item ->
             when (item) {
                 is SongItem -> item.copy(artists = item.artists.map { it.resolve() })

@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -27,6 +27,11 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.material3.ripple
+import com.metrolist.music.ui.utils.glassCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -541,8 +546,8 @@ fun LibraryPlaylistsScreen(
         }
 
         // Always visible + button (no scroll hiding)
-        FloatingActionButton(
-            onClick = { showCreatePlaylistDialog = true },
+        Box(
+            contentAlignment = Alignment.Center,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .windowInsetsPadding(
@@ -550,10 +555,20 @@ fun LibraryPlaylistsScreen(
                         .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
                 )
                 .padding(16.dp)
+                .size(40.dp)
+                .glassCard(cornerRadius = 20.dp)
+                .clip(CircleShape)
+                .clickable(
+                    onClick = { showCreatePlaylistDialog = true },
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = ripple()
+                )
         ) {
             Icon(
                 painter = painterResource(R.drawable.add),
                 contentDescription = stringResource(R.string.create_playlist),
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
             )
         }
     }

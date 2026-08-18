@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -112,6 +112,9 @@ import com.metrolist.music.extensions.move
 import com.metrolist.music.extensions.toggleRepeatMode
 import com.metrolist.music.listentogether.RoomRole
 import com.metrolist.music.models.MediaMetadata
+import coil3.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import com.metrolist.music.ui.component.ActionPromptDialog
 import com.metrolist.music.ui.component.BottomSheet
 import com.metrolist.music.ui.component.BottomSheetState
@@ -179,8 +182,10 @@ fun Queue(
 
     val currentWindowIndex by playerConnection.currentWindowIndex.collectAsStateWithLifecycle()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsStateWithLifecycle()
-
     val currentFormat by playerConnection.currentFormat.collectAsStateWithLifecycle(initialValue = null)
+    val queueTitle by playerConnection.queueTitle.collectAsStateWithLifecycle()
+    val queueWindows by playerConnection.queueWindows.collectAsStateWithLifecycle()
+    val automix by playerConnection.service.automixItems.collectAsStateWithLifecycle()
 
     val selectedSongs = remember { mutableStateListOf<MediaMetadata>() }
     val selectedItems = remember { mutableStateListOf<Timeline.Window>() }
@@ -264,154 +269,74 @@ fun Queue(
         },
         collapsedContent = {
             if (useNewPlayerDesign) {
-                // New design
+                // New premium Spotify-like next song preview design
+                val nextWindow = queueWindows.getOrNull(currentWindowIndex + 1)
+                val nextSongMetadata = nextWindow?.mediaItem?.metadata ?: automix.firstOrNull()?.metadata
+
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 30.dp, vertical = 12.dp)
-                            .windowInsetsPadding(
-                                WindowInsets.systemBars.only(
-                                    WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal,
-                                ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(72.dp)
+                        .padding(horizontal = 24.dp)
+                        .windowInsetsPadding(
+                            WindowInsets.systemBars.only(
+                                WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal,
                             ),
+                        )
                 ) {
-                    val buttonSize = 42.dp
-                    val iconSize = 24.dp
-                    val queueShape =
-                        RoundedCornerShape(
-                            topStart = 50.dp,
-                            bottomStart = 50.dp,
-                            topEnd = 3.dp,
-                            bottomEnd = 3.dp,
-                        )
-                    val middleShape = RoundedCornerShape(3.dp)
-                    val repeatShape =
-                        RoundedCornerShape(
-                            topStart = 3.dp,
-                            bottomStart = 3.dp,
-                            topEnd = 50.dp,
-                            bottomEnd = 50.dp,
-                        )
-
-                    PlayerQueueButton(
-                        icon = R.drawable.queue_music,
-                        onClick = { state.expandSoft() },
-                        isActive = false,
-                        shape = queueShape,
-                        modifier = Modifier.size(buttonSize),
-                        textButtonColor = textButtonColor,
-                        iconButtonColor = iconButtonColor,
-                        iconSize = iconSize,
-                        textBackgroundColor = TextBackgroundColor,
-                        playerBackground = playerBackground,
-                    )
-
-                    PlayerQueueButton(
-                        icon = R.drawable.bedtime,
-                        onClick = {
-                            if (sleepTimerEnabled) {
-                                playerConnection.service.sleepTimer.clear()
-                            } else {
-                                showSleepTimerDialog = true
-                            }
-                        },
-                        isActive = sleepTimerEnabled,
-                        enabled = !isListenTogetherGuest,
-                        shape = middleShape,
-                        modifier = Modifier.size(buttonSize),
-                        textButtonColor = textButtonColor,
-                        iconButtonColor = iconButtonColor,
-                        text = if (sleepTimerEnabled) makeTimeString(sleepTimerTimeLeft) else null,
-                        iconSize = iconSize,
-                        textBackgroundColor = TextBackgroundColor,
-                        playerBackground = playerBackground,
-                    )
-
-                    val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsStateWithLifecycle()
-                    PlayerQueueButton(
-                        icon = R.drawable.shuffle,
-                        onClick = {
-                            playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled
-                        },
-                        isActive = shuffleModeEnabled,
-                        enabled = !isListenTogetherGuest,
-                        shape = middleShape,
-                        modifier = Modifier.size(buttonSize),
-                        textButtonColor = textButtonColor,
-                        iconButtonColor = iconButtonColor,
-                        iconSize = iconSize,
-                        textBackgroundColor = TextBackgroundColor,
-                        playerBackground = playerBackground,
-                    )
-
-                    PlayerQueueButton(
-                        icon = R.drawable.lyrics,
-                        onClick = { onToggleLyrics() },
-                        isActive = showInlineLyrics,
-                        shape = middleShape,
-                        modifier = Modifier.size(buttonSize),
-                        textButtonColor = textButtonColor,
-                        iconButtonColor = iconButtonColor,
-                        iconSize = iconSize,
-                        textBackgroundColor = TextBackgroundColor,
-                        playerBackground = playerBackground,
-                    )
-
-                    PlayerQueueButton(
-                        icon =
-                            when (repeatMode) {
-                                Player.REPEAT_MODE_ALL -> R.drawable.repeat
-                                Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
-                                else -> R.drawable.repeat
-                            },
-                        onClick = {
-                            playerConnection.player.toggleRepeatMode()
-                        },
-                        isActive = repeatMode != Player.REPEAT_MODE_OFF,
-                        enabled = !isListenTogetherGuest,
-                        shape = repeatShape,
-                        modifier = Modifier.size(buttonSize),
-                        textButtonColor = textButtonColor,
-                        iconButtonColor = iconButtonColor,
-                        iconSize = iconSize,
-                        textBackgroundColor = TextBackgroundColor,
-                        playerBackground = playerBackground,
-                    )
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    Box(
-                        modifier =
-                            Modifier
-                                .size(buttonSize)
-                                .clip(CircleShape)
-                                .background(textButtonColor)
-                                .clickable {
-                                    menuState.show {
-                                        PlayerMenu(
-                                            mediaMetadata = mediaMetadata,
-                                            playerBottomSheetState = playerBottomSheetState,
-                                            onShowDetailsDialog = {
-                                                mediaMetadata?.id?.let {
-                                                    bottomSheetPageState.show {
-                                                        ShowMediaInfo(it)
-                                                    }
-                                                }
-                                            },
-                                            onDismiss = menuState::dismiss,
-                                        )
-                                    }
-                                },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.more_vert),
+                    if (nextSongMetadata != null) {
+                        // Album Art
+                        AsyncImage(
+                            model = nextSongMetadata.thumbnailUrl,
                             contentDescription = null,
-                            modifier = Modifier.size(iconSize),
-                            tint = iconButtonColor,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.next_songs).uppercase(),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp
+                                ),
+                                color = TextBackgroundColor.copy(alpha = 0.5f)
+                            )
+                            Text(
+                                text = nextSongMetadata.title.orEmpty(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextBackgroundColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Duration
+                        val durationText = makeTimeString(nextSongMetadata.duration * 1000L)
+                        if (durationText.isNotEmpty()) {
+                            Text(
+                                text = durationText,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextBackgroundColor.copy(alpha = 0.6f),
+                                maxLines = 1
+                            )
+                        }
+                    } else {
+                        // Empty queue message
+                        Text(
+                            text = stringResource(R.string.no_songs_in_queue),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextBackgroundColor.copy(alpha = 0.5f)
                         )
                     }
                 }
@@ -654,9 +579,6 @@ fun Queue(
             }
         },
     ) {
-        val queueTitle by playerConnection.queueTitle.collectAsStateWithLifecycle()
-        val queueWindows by playerConnection.queueWindows.collectAsStateWithLifecycle()
-        val automix by playerConnection.service.automixItems.collectAsStateWithLifecycle()
         val mutableQueueWindows = remember { mutableStateListOf<Timeline.Window>() }
         val queueLength =
             remember(queueWindows) {

@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -18,6 +18,7 @@ fun Lyrics(
     sliderPositionProvider: () -> Long?,
     modifier: Modifier = Modifier,
     showLyrics: Boolean,
+    lyricsTextSize: Float = 36f,
     lyricsViewModel: LyricsViewModel = hiltViewModel()
 ) {
     val (experimentalLyrics, _) = rememberPreference(key = ExperimentalLyricsKey, defaultValue = true)
@@ -27,6 +28,7 @@ fun Lyrics(
             sliderPositionProvider = sliderPositionProvider,
             modifier = modifier,
             showLyrics = showLyrics,
+            lyricsTextSize = lyricsTextSize,
             lyricsViewModel = lyricsViewModel
         )
     } else {

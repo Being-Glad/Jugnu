@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -57,7 +57,7 @@ fun GridItemPlaceHolder(
                 Modifier.height(gridHeight)
             }.aspectRatio(1f)
                 .clip(thumbnailShape)
-                .background(MaterialTheme.colorScheme.onSurface),
+                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.08f)),
         )
 
         Spacer(modifier = Modifier.height(6.dp))

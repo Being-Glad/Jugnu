@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -26,6 +26,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.ui.graphics.Color
+import com.metrolist.music.ui.utils.glassCard
+
 @Composable
 fun Material3MenuGroup(
     items: List<Material3MenuItemData>
@@ -45,10 +50,11 @@ fun Material3MenuGroup(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .animateContentSize(),
+                    .animateContentSize()
+                    .glassCard(shape = shape),
                 shape = shape,
-                colors = item.cardColors ?: CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.Transparent
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
@@ -73,7 +79,11 @@ private fun Material3MenuItemRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         item.icon?.let { icon ->
-            icon()
+            CompositionLocalProvider(
+                LocalContentColor provides MaterialTheme.colorScheme.primary
+            ) {
+                icon()
+            }
             Spacer(modifier = Modifier.width(16.dp))
         }
 

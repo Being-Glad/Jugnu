@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -34,6 +34,10 @@ import com.metrolist.music.utils.cipher.FunctionNameExtractor
 import com.metrolist.music.utils.cipher.PlayerJsFetcher
 import com.metrolist.music.utils.potoken.PoTokenGenerator
 import com.metrolist.music.utils.potoken.PoTokenResult
+import com.metrolist.music.constants.ValidateStreamsKey
+import com.metrolist.music.utils.dataStore
+import com.metrolist.music.utils.get
+import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 import timber.log.Timber
 
@@ -43,9 +47,30 @@ object YTPlayerUtils {
 
     private val httpClient = OkHttpClient.Builder()
         .proxy(YouTube.proxy)
+        .dns(com.metrolist.innertube.PreferIPv4Dns)
+        .connectTimeout(2, TimeUnit.SECONDS)
+        .readTimeout(2, TimeUnit.SECONDS)
         .build()
 
     private val poTokenGenerator = PoTokenGenerator()
+
+    @Volatile
+    private var cachedSignatureTimestamp: Int? = null
+    @Volatile
+    private var signatureTimestampFetchTime = 0L
+    private const val STS_CACHE_TTL_MS = 24 * 60 * 60 * 1000L // 24 hours
+
+    /**
+     * Pre-warms signature timestamp, player.js, and CipherWebView in the background.
+     */
+    suspend fun prewarm() {
+        try {
+            getSignatureTimestampOrNull("dQw4w9WgXcQ")
+            CipherDeobfuscator.prewarm()
+        } catch (e: Exception) {
+            Timber.tag(TAG).d("Prewarm notice: ${e.message}")
+        }
+    }
 
     private val MAIN_CLIENT: YouTubeClient = WEB_REMIX
 
@@ -223,15 +248,7 @@ object YTPlayerUtils {
             if (streamPlayerResponse?.playabilityStatus?.status == "OK") {
                 Timber.tag(logTag).d("Player response status OK for client: ${if (clientIndex == -1) MAIN_CLIENT.clientName else STREAM_FALLBACK_CLIENTS[clientIndex].clientName}")
 
-                // Skip NewPipe for age-restricted content (NewPipe doesn't use our auth)
-                val responseToUse = if (wasOriginallyAgeRestricted) {
-                    Timber.tag(logTag).d("Skipping NewPipe for age-restricted content")
-                    streamPlayerResponse
-                } else {
-                    // Try to get streams using newPipePlayer method
-                    val newPipeResponse = YouTube.newPipePlayer(videoId, streamPlayerResponse)
-                    newPipeResponse ?: streamPlayerResponse
-                }
+                val responseToUse = streamPlayerResponse
 
                 if (audioConfig == null) {
                     audioConfig = responseToUse.playerConfig?.audioConfig
@@ -374,9 +391,13 @@ object YTPlayerUtils {
                     break
                 }
 
-                if (validateStatus(streamUrl)) {
+                val isMainClient = clientIndex == -1
+                val validateSetting = CipherDeobfuscator.appContext.dataStore.get(ValidateStreamsKey, false)
+                val shouldSkipValidation = isMainClient && !validateSetting
+
+                if (shouldSkipValidation || validateStatus(streamUrl)) {
                     // working stream found
-                    Timber.tag(logTag).d("Stream validated successfully with client: ${currentClient.clientName}")
+                    Timber.tag(logTag).d("Stream accepted (validation skipped=$shouldSkipValidation) for client: ${currentClient.clientName}")
                     // Log for release builds
                     Timber.tag(TAG).i("Playback: client=${currentClient.clientName}, videoId=$videoId")
                     successClient = currentClient.clientName
@@ -591,11 +612,18 @@ object YTPlayerUtils {
     )
 
     private suspend fun getSignatureTimestampOrNull(videoId: String): SignatureTimestampResult {
+        val cached = cachedSignatureTimestamp
+        if (cached != null && System.currentTimeMillis() - signatureTimestampFetchTime < STS_CACHE_TTL_MS) {
+            Timber.tag(logTag).d("Using cached signature timestamp: $cached")
+            return SignatureTimestampResult(cached, isAgeRestricted = false)
+        }
         Timber.tag(logTag).d("Getting signature timestamp for videoId: $videoId")
         val result = NewPipeExtractor.getSignatureTimestamp(videoId)
         return result.fold(
             onSuccess = { timestamp ->
                 Timber.tag(logTag).d("Signature timestamp obtained via NewPipe: $timestamp")
+                cachedSignatureTimestamp = timestamp
+                signatureTimestampFetchTime = System.currentTimeMillis()
                 SignatureTimestampResult(timestamp, isAgeRestricted = false)
             },
             onFailure = { error ->
@@ -609,8 +637,6 @@ object YTPlayerUtils {
                     reportException(error)
                 }
                 // Fallback: extract signatureTimestamp directly from player.js when NewPipe fails.
-                // This keeps playback working when the NewPipe extractor is outdated for a new
-                // player version, as long as the player.js still embeds signatureTimestamp inline.
                 val fallbackSts = runCatching {
                     Timber.tag(logTag).d("Trying player.js fallback for signature timestamp")
                     val (playerJs, hash) = PlayerJsFetcher.getPlayerJs()
@@ -620,6 +646,10 @@ object YTPlayerUtils {
                         ?: error("extractSignatureTimestamp returned null for hash=$hash")
                 }.onSuccess { sts ->
                     Timber.tag(logTag).d("Signature timestamp obtained via player.js fallback: $sts")
+                    if (sts != null) {
+                        cachedSignatureTimestamp = sts
+                        signatureTimestampFetchTime = System.currentTimeMillis()
+                    }
                 }.onFailure { e ->
                     Timber.tag(logTag).e(e, "player.js fallback for signature timestamp also failed")
                 }.getOrNull()
@@ -695,6 +725,11 @@ object YTPlayerUtils {
 
         Timber.tag(logTag).e("Failed to get stream URL")
         return null
+    }
+
+    fun prewarm(sessionId: String) {
+        Timber.tag(TAG).d("Pre-warming PoToken session for sessionId=$sessionId")
+        poTokenGenerator.getWebClientPoToken("dQw4w9WgXcQ", sessionId)
     }
 
     fun forceRefreshForVideo(videoId: String) {

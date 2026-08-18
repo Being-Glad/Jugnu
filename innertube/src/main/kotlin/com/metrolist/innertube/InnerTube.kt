@@ -89,16 +89,19 @@ class InnerTube {
                 // Connection pool settings for better connection reuse
                 connectionPool(
                     okhttp3.ConnectionPool(
-                        10, // maxIdleConnections
+                        32, // maxIdleConnections
                         5, // keepAliveDuration
                         java.util.concurrent.TimeUnit.MINUTES
                     )
                 )
                 
+                // Use PreferIPv4Dns to prioritize IPv4 and prevent IPv6 connection hangs
+                dns(PreferIPv4Dns)
+                
                 // Timeout configurations
-                connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-                readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
-                writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
                 
                 // Enable HTTP/2 for better performance
                 protocols(listOf(okhttp3.Protocol.HTTP_2, okhttp3.Protocol.HTTP_1_1))
@@ -132,9 +135,9 @@ class InnerTube {
 
         // Request timeout configuration
         install(HttpTimeout) {
-            requestTimeoutMillis = 60000
-            connectTimeoutMillis = 30000
-            socketTimeoutMillis = 60000
+            requestTimeoutMillis = 30000
+            connectTimeoutMillis = 10000
+            socketTimeoutMillis = 30000
         }
 
         defaultRequest {

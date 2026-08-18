@@ -1,5 +1,5 @@
 /**
- * Metrolist Project (C) 2026
+ * Jugnu Project (C) 2026
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
@@ -12,8 +12,8 @@ import android.content.pm.PackageManager
 object IconUtils {
     fun setIcon(context: Context, enabled: Boolean) {
         val pm = context.packageManager
-        val dynamic = ComponentName(context, "com.metrolist.music.MainActivityAlias")
-        val static = ComponentName(context, "com.metrolist.music.MainActivityStatic")
+        val dynamic = ComponentName(context.packageName, "com.metrolist.music.MainActivityAlias")
+        val static = ComponentName(context.packageName, "com.metrolist.music.MainActivityStatic")
 
         pm.setComponentEnabledSetting(
             dynamic,
