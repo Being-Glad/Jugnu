@@ -148,7 +148,7 @@ fun ShowMediaInfo(videoId: String) {
                         R.drawable.content_copy
                     )
 
-                    val measuredLufs: Double? = currentFormat?.perceptualLoudnessDb ?: currentFormat?.loudnessDb?.let { it + LoudnessLevel.AGGRESSIVE.targetLufs }
+                    val measuredLufs: Double? = currentFormat?.perceptualLoudnessDb ?: currentFormat?.loudnessDb?.let { it + LoudnessLevel.BALANCED.targetLufs }
 
                     val extendedList = if (currentFormat != null) {
                         listOf(

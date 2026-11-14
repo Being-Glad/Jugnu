@@ -1063,5 +1063,24 @@
     <!-- Unified Search Strings -->
     <string name="search_unified_hint">Search YouTube Music &amp; Library…</string>
     <string name="recent_searches">Recent searches</string>
+
+    <!-- Discover Mix / AI Recommendations -->
+    <string name="discover_mix">Discover Mix</string>
+    <string name="recommendation_seed">RECOMMENDATION SEED</string>
+    <string name="no_track_playing_mix_fallback">No track playing. Generating mix from Liked Songs fallback.</string>
+    <string name="generate_discovery_mix">Generate Discovery Mix</string>
+    <string name="tap_generate_discovery_mix">Tap Generate to build your personalized discovery mix.</string>
+    <string name="fetching_smart_recommendations">Fetching smart recommendations…</string>
+    <string name="generated_queue_count">Generated Queue (%d)</string>
+    <string name="save_as_playlist">Save as Playlist</string>
+    <string name="saved_as_playlist">Saved as playlist: %s</string>
+
+    <!-- Country & Charts -->
+    <string name="view_all">View all</string>
+    <string name="global_worldwide">Worldwide / Global</string>
+    <string name="auto_detect_country">Auto-detect (%s)</string>
+    <string name="top_songs">Top Songs</string>
+    <string name="top_artists">Top Artists</string>
+    <string name="music_videos_charts">Music Videos</string>
 </resources>
 

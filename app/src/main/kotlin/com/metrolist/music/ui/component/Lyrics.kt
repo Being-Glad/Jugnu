@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.metrolist.music.constants.ExperimentalLyricsKey
+import com.metrolist.music.constants.LyricsTextSizeKey
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.LyricsViewModel
 
@@ -18,17 +19,19 @@ fun Lyrics(
     sliderPositionProvider: () -> Long?,
     modifier: Modifier = Modifier,
     showLyrics: Boolean,
-    lyricsTextSize: Float = 36f,
+    lyricsTextSize: Float? = null,
     lyricsViewModel: LyricsViewModel = hiltViewModel()
 ) {
     val (experimentalLyrics, _) = rememberPreference(key = ExperimentalLyricsKey, defaultValue = true)
+    val (preferredTextSize, _) = rememberPreference(key = LyricsTextSizeKey, defaultValue = 22f)
+    val effectiveTextSize = lyricsTextSize ?: preferredTextSize
 
     if (experimentalLyrics) {
         ExperimentalLyrics(
             sliderPositionProvider = sliderPositionProvider,
             modifier = modifier,
             showLyrics = showLyrics,
-            lyricsTextSize = lyricsTextSize,
+            lyricsTextSize = effectiveTextSize,
             lyricsViewModel = lyricsViewModel
         )
     } else {

@@ -447,7 +447,7 @@ class MusicService :
     @Volatile
     private var cachedHideExplicit = false
     @Volatile
-    private var cachedHideVideoSongs = false
+    private var cachedHideVideoSongs = true
     @Volatile
     private var cachedShufflePlaylistFirst = false
     @Volatile
@@ -476,6 +476,8 @@ class MusicService :
             }
         }
     )
+
+    private val prefetchingMediaIds = Collections.synchronizedSet(mutableSetOf<String>())
 
     // Flag to bypass cache when quality changes - forces fresh stream fetch
     private val bypassCacheForQualityChange = mutableSetOf<String>()
@@ -1112,7 +1114,7 @@ class MusicService :
             dataStore.data.map { it[HideExplicitKey] ?: false }.distinctUntilChanged().collect { cachedHideExplicit = it }
         }
         scope.launch {
-            dataStore.data.map { it[HideVideoSongsKey] ?: false }.distinctUntilChanged().collect { cachedHideVideoSongs = it }
+            dataStore.data.map { it[HideVideoSongsKey] ?: true }.distinctUntilChanged().collect { cachedHideVideoSongs = it }
         }
         scope.launch {
             dataStore.data.map { it[ShufflePlaylistFirstKey] ?: false }.distinctUntilChanged().collect { cachedShufflePlaylistFirst = it }
@@ -1242,17 +1244,36 @@ class MusicService :
 
         val silenceProcessor = SilenceDetectorAudioProcessor { handleLongSilenceDetected() }
 
-        // Set initial state
-        val useAudioTrackPlaybackParams = runBlocking {
-            val skipSilence = dataStore.get(SkipSilenceKey, false)
+        // Set initial state off the main thread in one batched read
+        var useAudioTrackPlaybackParams = true
+        var initialOffload = false
+        var initialCrossfade = false
+        var initialSkipSilence = false
+        runBlocking(Dispatchers.IO) {
+            initialSkipSilence = dataStore.get(SkipSilenceKey, false)
             val instantSkip = dataStore.get(SkipSilenceInstantKey, false)
-            silenceProcessor.instantModeEnabled = skipSilence && instantSkip
-            dataStore.get(AudioTrackPlaybackParamsKey, true)
+            silenceProcessor.instantModeEnabled = initialSkipSilence && instantSkip
+            useAudioTrackPlaybackParams = dataStore.get(AudioTrackPlaybackParamsKey, true)
+            initialOffload = dataStore.get(AudioOffload, false)
+            initialCrossfade = dataStore.get(CrossfadeEnabledKey, false)
         }
+
+        val loadControl =
+            androidx.media3.exoplayer.DefaultLoadControl
+                .Builder()
+                .setBufferDurationsMs(
+                    15_000,
+                    50_000,
+                    750,
+                    1_500,
+                ).setBackBuffer(30_000, true)
+                .setPrioritizeTimeOverSizeThresholds(true)
+                .build()
 
         val player =
             ExoPlayer
                 .Builder(this)
+                .setLoadControl(loadControl)
                 .setMediaSourceFactory(createMediaSourceFactory())
                 .setRenderersFactory(createRenderersFactory(normalizationProcessor, eqProcessor, silenceProcessor, useAudioTrackPlaybackParams))
                 .setHandleAudioBecomingNoisy(true)
@@ -1273,12 +1294,8 @@ class MusicService :
         playerSilenceProcessors[player] = silenceProcessor
 
         player.apply {
-            runBlocking {
-                val offload = dataStore.get(AudioOffload, false)
-                val crossfade = dataStore.get(CrossfadeEnabledKey, false)
-                setOffloadEnabled(if (crossfade) false else offload)
-                skipSilenceEnabled = dataStore.get(SkipSilenceKey, false)
-            }
+            setOffloadEnabled(if (initialCrossfade) false else initialOffload)
+            skipSilenceEnabled = initialSkipSilence
             addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
 
             // Cleanup handled manually in onDestroy/release
@@ -1625,7 +1642,7 @@ class MusicService :
                     queue
                         .getInitialStatus()
                         .filterExplicit(dataStore.get(HideExplicitKey, false))
-                        .filterVideoSongs(dataStore.get(HideVideoSongsKey, false))
+                        .filterVideoSongs(dataStore.get(HideVideoSongsKey, true))
                 }
             if (queue.preloadItem != null && player.playbackState == STATE_IDLE) return@launch
             if (initialStatus.title != null) {
@@ -2155,7 +2172,7 @@ class MusicService :
                     Timber.tag(TAG).d("Audio normalization enabled: $normalizeAudio")
                     
                     val measuredLufs: Double? = format?.perceptualLoudnessDb
-                        ?: format?.loudnessDb?.let { it + LoudnessLevel.AGGRESSIVE.targetLufs }
+                        ?: format?.loudnessDb?.let { it + LoudnessLevel.BALANCED.targetLufs }
 
                     withContext(Dispatchers.Main) {
                         if (!isActive || requestGeneration != loudnessSetupGeneration) return@withContext
@@ -2330,6 +2347,7 @@ class MusicService :
             }
         }
         previousMediaItemIndex = player.currentMediaItemIndex
+        prefetchNextTrackUrl()
 
         lastPlaybackSpeed = -1.0f // force update song
 
@@ -3242,8 +3260,16 @@ class MusicService :
                                 OkHttpClient
                                     .Builder()
                                     .dns(com.metrolist.innertube.PreferIPv4Dns)
-                                    .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                                    .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                                    .connectionPool(
+                                        okhttp3.ConnectionPool(
+                                            16,
+                                            5,
+                                            java.util.concurrent.TimeUnit.MINUTES,
+                                        ),
+                                    ).protocols(listOf(okhttp3.Protocol.HTTP_2, okhttp3.Protocol.HTTP_1_1))
+                                    .connectTimeout(8, java.util.concurrent.TimeUnit.SECONDS)
+                                    .readTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
+                                    .retryOnConnectionFailure(true)
                                     .proxy(YouTube.proxy)
                                     .proxyAuthenticator { _, response ->
                                         YouTube.proxyAuth?.let { auth ->
@@ -3576,30 +3602,115 @@ class MusicService :
                     playbackUrlCache[cacheKey(mediaId)] = it
                 }
 
-                // Pre-resolve next track stream URL in background for gapless playback
-                scope.launch(Dispatchers.IO) {
+                // Pre-resolve next track stream URL safely (read player index on Main, fetch on IO)
+                prefetchNextTrackUrl()
+
+                return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, CHUNK_LENGTH)
+            }
+        }
+    }
+
+    private fun prefetchNextTrackUrl() {
+        scope.launch(Dispatchers.Main) {
+            if (!playerInitialized.value) return@launch
+            val nextIndex = player.currentMediaItemIndex + 1
+            if (nextIndex < 0 || nextIndex >= player.mediaItemCount) return@launch
+            val nextMediaId = player.getMediaItemAt(nextIndex).mediaId
+            val secondNextMediaId = if (nextIndex + 1 < player.mediaItemCount) {
+                player.getMediaItemAt(nextIndex + 1).mediaId.takeIf { it.isNotEmpty() }
+            } else null
+            if (nextMediaId.isEmpty()) return@launch
+
+            withContext(Dispatchers.IO) {
+                // 1. Resolve stream URL and pre-buffer opening chunk into playerCache for the immediate next song (+1)
+                if (prefetchingMediaIds.add(nextMediaId)) {
                     try {
-                        val nextIndex = player.currentMediaItemIndex + 1
-                        if (nextIndex < player.mediaItemCount) {
-                            val nextMediaItem = player.getMediaItemAt(nextIndex)
-                            val nextMediaId = nextMediaItem.mediaId
-                            val cached = songUrlCache[nextMediaId]
-                            if (nextMediaId.isNotEmpty() && (cached == null || cached.second <= System.currentTimeMillis())) {
-                                val nextPlayback = YTPlayerUtils.playerResponseForPlayback(
-                                    nextMediaId,
-                                    audioQuality = audioQuality,
-                                    connectivityManager = connectivityManager,
-                                ).getOrNull()
-                                if (nextPlayback != null) {
-                                    songUrlCache[nextMediaId] = nextPlayback.streamUrl to (System.currentTimeMillis() + (nextPlayback.streamExpiresInSeconds * 1000L))
+                        val cached = songUrlCache[nextMediaId]
+                        val streamUrl = if (cached != null && cached.second > System.currentTimeMillis()) {
+                            cached.first
+                        } else {
+                            val nextPlayback = YTPlayerUtils.playerResponseForPlayback(
+                                nextMediaId,
+                                audioQuality = audioQuality,
+                                connectivityManager = connectivityManager,
+                            ).getOrNull()
+                            if (nextPlayback != null) {
+                                (nextPlayback.streamUrl to (System.currentTimeMillis() + (nextPlayback.streamExpiresInSeconds * 1000L))).also {
+                                    songUrlCache[nextMediaId] = it
+                                }.first
+                            } else null
+                        }
+
+                        // Pre-buffer opening audio bytes into playerCache for instant 0ms start
+                        if (streamUrl != null && dataStore.get(EnableSongCacheKey, true)) {
+                            if (!downloadCache.isCached(nextMediaId, 0, CHUNK_LENGTH) &&
+                                !playerCache.isCached(nextMediaId, 0, CHUNK_LENGTH)
+                            ) {
+                                val cacheDataSource = CacheDataSource.Factory()
+                                    .setCache(playerCache)
+                                    .setUpstreamDataSourceFactory(
+                                        DefaultDataSource.Factory(
+                                            this@MusicService,
+                                            OkHttpDataSource.Factory(
+                                                OkHttpClient.Builder()
+                                                    .dns(com.metrolist.innertube.PreferIPv4Dns)
+                                                    .connectTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
+                                                    .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                                                    .proxy(YouTube.proxy)
+                                                    .build()
+                                            )
+                                        )
+                                    )
+                                    .createDataSource()
+
+                                val dataSpec = androidx.media3.datasource.DataSpec.Builder()
+                                    .setUri(streamUrl.toUri())
+                                    .setKey(nextMediaId)
+                                    .setPosition(0)
+                                    .setLength(CHUNK_LENGTH)
+                                    .build()
+
+                                try {
+                                    cacheDataSource.open(dataSpec)
+                                    val buffer = ByteArray(32 * 1024)
+                                    var totalBytesRead = 0L
+                                    while (totalBytesRead < CHUNK_LENGTH) {
+                                        val bytesToRead = minOf(buffer.size.toLong(), CHUNK_LENGTH - totalBytesRead).toInt()
+                                        val bytesRead = cacheDataSource.read(buffer, 0, bytesToRead)
+                                        if (bytesRead == C.RESULT_END_OF_INPUT) break
+                                        totalBytesRead += bytesRead
+                                    }
+                                } finally {
+                                    cacheDataSource.close()
                                 }
                             }
                         }
                     } catch (_: Exception) {
+                    } finally {
+                        prefetchingMediaIds.remove(nextMediaId)
                     }
                 }
 
-                return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, CHUNK_LENGTH)
+                // 2. Pre-resolve stream URL for the song after next (+2) so double-skips are also seamless
+                if (secondNextMediaId != null && prefetchingMediaIds.add(secondNextMediaId)) {
+                    try {
+                        val cached2 = songUrlCache[secondNextMediaId]
+                        if (cached2 == null || cached2.second <= System.currentTimeMillis()) {
+                            val secondPlayback = YTPlayerUtils.playerResponseForPlayback(
+                                secondNextMediaId,
+                                audioQuality = audioQuality,
+                                connectivityManager = connectivityManager,
+                            ).getOrNull()
+                            if (secondPlayback != null) {
+                                songUrlCache[secondNextMediaId] =
+                                    secondPlayback.streamUrl to (System.currentTimeMillis() + (secondPlayback.streamExpiresInSeconds * 1000L))
+                            }
+                        }
+                    } catch (_: Exception) {
+                    } finally {
+                        prefetchingMediaIds.remove(secondNextMediaId)
+                    }
+                }
             }
         }
     }
@@ -3624,7 +3735,7 @@ class MusicService :
             enableAudioTrackPlaybackParams: Boolean,
         ) = DefaultAudioSink
             .Builder(this@MusicService)
-            .setEnableFloatOutput(enableFloatOutput)
+            .setEnableFloatOutput(true)
             .setEnableAudioTrackPlaybackParams(useAudioTrackPlaybackParams)
             .setAudioProcessorChain(
                 DefaultAudioSink.DefaultAudioProcessorChain(

@@ -17,7 +17,9 @@ import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.view.View
+import android.view.ViewTreeObserver
 import android.view.WindowManager
+import com.metrolist.music.utils.HapticUtils
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
@@ -419,6 +421,32 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         window.decorView.layoutDirection = View.LAYOUT_DIRECTION_LTR
         WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        if (savedInstanceState == null) {
+            var isAppReady = false
+            val content: View = findViewById(android.R.id.content)
+            content.viewTreeObserver.addOnPreDrawListener(
+                object : ViewTreeObserver.OnPreDrawListener {
+                    override fun onPreDraw(): Boolean {
+                        return if (isAppReady) {
+                            content.viewTreeObserver.removeOnPreDrawListener(this)
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                }
+            )
+
+            lifecycleScope.launch {
+                // Hold splash screen until first frame visuals are initialized (~350ms)
+                delay(350)
+                isAppReady = true
+                content.invalidate()
+                // Tactile pop precisely when splash screen reveals the home screen visuals
+                HapticUtils.playLaunchPop(this@MainActivity, window.decorView)
+            }
+        }
 
         // Initialize Listen Together manager
         listenTogetherManager.initialize()

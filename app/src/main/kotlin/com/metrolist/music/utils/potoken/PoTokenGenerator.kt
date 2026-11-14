@@ -22,7 +22,12 @@ class PoTokenGenerator {
     private var webPoTokenStreamingPot: String? = null
     private var webPoTokenGenerator: PoTokenWebView? = null
 
-    fun getWebClientPoToken(videoId: String, sessionId: String): PoTokenResult? {
+    fun getWebClientPoToken(videoId: String, sessionId: String): PoTokenResult? =
+        runBlocking {
+            getWebClientPoTokenSuspend(videoId, sessionId)
+        }
+
+    suspend fun getWebClientPoTokenSuspend(videoId: String, sessionId: String): PoTokenResult? {
         Timber.tag(TAG).d("getWebClientPoToken called: videoId=$videoId, sessionId=$sessionId")
         Timber.tag(TAG).d("WebView state: supported=$webViewSupported, badImpl=$webViewBadImpl")
         if (!webViewSupported || webViewBadImpl) {
@@ -31,11 +36,9 @@ class PoTokenGenerator {
         }
 
         return try {
-            Timber.tag(TAG).d("Calling runBlocking to generate poToken (timeout=${POTOKEN_TIMEOUT_MS}ms)...")
-            runBlocking {
-                withTimeout(POTOKEN_TIMEOUT_MS) {
-                    getWebClientPoToken(videoId, sessionId, forceRecreate = false)
-                }
+            Timber.tag(TAG).d("Generating poToken asynchronously (timeout=${POTOKEN_TIMEOUT_MS}ms)...")
+            withTimeout(POTOKEN_TIMEOUT_MS) {
+                getWebClientPoToken(videoId, sessionId, forceRecreate = false)
             }
         } catch (e: TimeoutCancellationException) {
             // The WebView's sandboxed process can be culled by the OS (storage pressure, low
@@ -43,19 +46,17 @@ class PoTokenGenerator {
             // playerResponseForPlayback can fall through to non-PoToken fallback clients (e.g.
             // ANDROID_VR) instead of blocking the entire playback path.
             Timber.tag(TAG).w("poToken generation timed out after ${POTOKEN_TIMEOUT_MS}ms; proceeding without PoToken")
-            runBlocking {
-                webPoTokenGenLock.withLock {
-                    try {
-                        withContext(Dispatchers.Main) {
-                            webPoTokenGenerator?.close()
-                        }
-                    } catch (closeEx: Exception) {
-                        Timber.tag(TAG).e(closeEx, "Exception closing PoTokenWebView during timeout cleanup")
+            webPoTokenGenLock.withLock {
+                try {
+                    withContext(Dispatchers.Main) {
+                        webPoTokenGenerator?.close()
                     }
-                    webPoTokenGenerator = null
-                    webPoTokenStreamingPot = null
-                    webPoTokenSessionId = null
+                } catch (closeEx: Exception) {
+                    Timber.tag(TAG).e(closeEx, "Exception closing PoTokenWebView during timeout cleanup")
                 }
+                webPoTokenGenerator = null
+                webPoTokenStreamingPot = null
+                webPoTokenSessionId = null
             }
             null
         } catch (e: Exception) {

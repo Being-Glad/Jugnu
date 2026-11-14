@@ -133,6 +133,7 @@ import com.metrolist.music.constants.LyricsGlowEffectKey
 import com.metrolist.music.constants.LyricsLineSpacingKey
 import com.metrolist.music.constants.LyricsDisplayPresetKey
 import com.metrolist.music.constants.LyricsRomanizeAsMainKey
+import com.metrolist.music.constants.LyricsPreferRomanizedKey
 import com.metrolist.music.constants.LyricsRomanizeCyrillicByLineKey
 import com.metrolist.music.constants.LyricsRomanizeList
 import com.metrolist.music.constants.LyricsScrollKey
@@ -222,7 +223,8 @@ fun OriginalLyrics(
     val lyricsDisplayPreset by rememberPreference(LyricsDisplayPresetKey, "SMART")
     val lyricsGlowEffect by rememberPreference(LyricsGlowEffectKey, false)
     val lyricsAnimationStyle by rememberEnumPreference(LyricsAnimationStyleKey, LyricsAnimationStyle.APPLE)
-    val lyricsTextSize by rememberPreference(LyricsTextSizeKey, 24f)
+    val lyricsTextSize by rememberPreference(LyricsTextSizeKey, 22f)
+    val preferRomanized by rememberPreference(LyricsPreferRomanizedKey, false)
     val lyricsLineSpacing by rememberPreference(LyricsLineSpacingKey, 1.3f)
 
     val openRouterApiKey by rememberPreference(OpenRouterApiKey, "")
@@ -1102,32 +1104,15 @@ fun OriginalLyrics(
                             val romanizedText = romanizedTextState
                             val isRomanizedAvailable = romanizedText != null
 
-                            val (mainText, subText) = run {
-                                if (lyricsDisplayPreset == "SMART") {
-                                    if (com.metrolist.music.lyrics.LyricsUtils.isLatinOrEnglish(item.text)) {
-                                        Pair(item.text, null)
-                                    } else if (com.metrolist.music.lyrics.LyricsUtils.isHindi(item.text)) {
-                                        Pair(item.text, romanizedText)
-                                    } else {
-                                        if (isRomanizedAvailable) {
-                                            Pair(romanizedText, item.text)
-                                        } else {
-                                            Pair(item.text, null)
-                                        }
-                                    }
+                            val (mainText, subText) = run<Pair<String, String?>> {
+                                if (isRomanizedAvailable && preferRomanized) {
+                                    Pair(romanizedText!!, null)
                                 } else {
-                                    val main = if (romanizeAsMain && isRomanizedAvailable) romanizedText else item.text
-                                    val sub = if (romanizeAsMain && isRomanizedAvailable) item.text else romanizedText
-                                    Pair(main, sub)
+                                    Pair(item.text, null)
                                 }
                             }
 
-                            val hasWordTimings = if (lyricsDisplayPreset == "SMART") {
-                                val isRomanizedAsMain = !com.metrolist.music.lyrics.LyricsUtils.isLatinOrEnglish(item.text) && !com.metrolist.music.lyrics.LyricsUtils.isHindi(item.text) && isRomanizedAvailable
-                                if (isRomanizedAsMain) false else item.words?.isNotEmpty() == true
-                            } else {
-                                if (romanizeAsMain && isRomanizedAvailable) false else item.words?.isNotEmpty() == true
-                            }
+                            val hasWordTimings = if (preferRomanized && isRomanizedAvailable) false else item.words?.isNotEmpty() == true
 
                             // Word-by-word animation styles
                             if (hasWordTimings && lyricsAnimationStyle == LyricsAnimationStyle.NONE) {

@@ -10,6 +10,8 @@ import androidx.lifecycle.viewModelScope
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.music.utils.RecommendationEngine
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -23,8 +25,11 @@ class RecommendationViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
     val uiState: StateFlow<UiState> = _uiState
 
+    private var generateJob: Job? = null
+
     fun generateRecommendations(currentSongId: String) {
-        viewModelScope.launch {
+        generateJob?.cancel()
+        generateJob = viewModelScope.launch {
             _uiState.value = UiState.Loading
             try {
                 val songs = recommendationEngine.getRecommendations(currentSongId, limit = 25)
@@ -33,6 +38,8 @@ class RecommendationViewModel @Inject constructor(
                 } else {
                     _uiState.value = UiState.Success(songs)
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _uiState.value = UiState.Error(e.message ?: "An unknown error occurred.")
             }

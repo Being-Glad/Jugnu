@@ -37,6 +37,8 @@ import com.metrolist.music.utils.potoken.PoTokenResult
 import com.metrolist.music.constants.ValidateStreamsKey
 import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.get
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 import timber.log.Timber
@@ -122,24 +124,28 @@ object YTPlayerUtils {
         val isLoggedIn = YouTube.cookie != null
         Timber.tag(TAG).d("Authentication status: ${if (isLoggedIn) "LOGGED_IN" else "ANONYMOUS"}")
 
-        // Get signature timestamp (same as before for normal content)
-        val signatureTimestamp = getSignatureTimestampOrNull(videoId)
-        Timber.tag(logTag).d("Signature timestamp: ${signatureTimestamp.timestamp}")
-
-        // Generate PoToken
-        var poToken: PoTokenResult? = null
+        // Fetch signature timestamp and PoToken concurrently to minimize startup latency
         val sessionId = YouTube.visitorData
-        if (MAIN_CLIENT.useWebPoTokens && sessionId != null) {
-            Timber.tag(logTag).d("Generating PoToken for WEB_REMIX with sessionId")
-            try {
-                poToken = poTokenGenerator.getWebClientPoToken(videoId, sessionId)
-                if (poToken != null) {
-                    Timber.tag(logTag).d("PoToken generated successfully")
+        val (signatureTimestamp, poToken) = coroutineScope {
+            val stsDeferred = async { getSignatureTimestampOrNull(videoId) }
+            val potDeferred = async {
+                if (MAIN_CLIENT.useWebPoTokens && sessionId != null) {
+                    Timber.tag(logTag).d("Generating PoToken for WEB_REMIX with sessionId")
+                    try {
+                        poTokenGenerator.getWebClientPoTokenSuspend(videoId, sessionId)?.also {
+                            Timber.tag(logTag).d("PoToken generated successfully")
+                        }
+                    } catch (e: Exception) {
+                        Timber.tag(logTag).e(e, "PoToken generation failed: ${e.message}")
+                        null
+                    }
+                } else {
+                    null
                 }
-            } catch (e: Exception) {
-                Timber.tag(logTag).e(e, "PoToken generation failed: ${e.message}")
             }
+            stsDeferred.await() to potDeferred.await()
         }
+        Timber.tag(logTag).d("Signature timestamp: ${signatureTimestamp.timestamp}")
 
         // Try WEB_REMIX with signature timestamp and poToken (same as before)
         Timber.tag(logTag).d("Attempting to get player response using MAIN_CLIENT: ${MAIN_CLIENT.clientName}")
@@ -210,6 +216,7 @@ object YTPlayerUtils {
         var successClient: String? = null
 
         val hasHighQuality = mainPlayerResponse.streamingData?.adaptiveFormats?.any { it.audioQuality == "AUDIO_QUALITY_HIGH" } == true
+        val validateSetting = CipherDeobfuscator.appContext.dataStore.get(ValidateStreamsKey, false)
 
         for (clientIndex in (startIndex until STREAM_FALLBACK_CLIENTS.size)) {
             // reset for each client
@@ -392,7 +399,6 @@ object YTPlayerUtils {
                 }
 
                 val isMainClient = clientIndex == -1
-                val validateSetting = CipherDeobfuscator.appContext.dataStore.get(ValidateStreamsKey, false)
                 val shouldSkipValidation = isMainClient && !validateSetting
 
                 if (shouldSkipValidation || validateStatus(streamUrl)) {
@@ -483,13 +489,21 @@ object YTPlayerUtils {
         playlistId: String? = null,
     ): Result<PlayerResponse> {
         Timber.tag(logTag).d("Fetching metadata player response for videoId: $videoId using MAIN_CLIENT: ${MAIN_CLIENT.clientName}")
-        val signatureTimestamp = getSignatureTimestampOrNull(videoId)
         val sessionId = YouTube.visitorData
-        var poToken: PoTokenResult? = null
-        if (MAIN_CLIENT.useWebPoTokens && sessionId != null) {
-            try {
-                poToken = poTokenGenerator.getWebClientPoToken(videoId, sessionId)
-            } catch (_: Exception) { }
+        val (signatureTimestamp, poToken) = coroutineScope {
+            val stsDeferred = async { getSignatureTimestampOrNull(videoId) }
+            val potDeferred = async {
+                if (MAIN_CLIENT.useWebPoTokens && sessionId != null) {
+                    try {
+                        poTokenGenerator.getWebClientPoTokenSuspend(videoId, sessionId)
+                    } catch (_: Exception) {
+                        null
+                    }
+                } else {
+                    null
+                }
+            }
+            stsDeferred.await() to potDeferred.await()
         }
         return YouTube.player(videoId, playlistId, WEB_REMIX, signatureTimestamp.timestamp, poToken?.playerRequestPoToken)
             .onSuccess { Timber.tag(logTag).d("Successfully fetched metadata player response") }
@@ -508,40 +522,40 @@ object YTPlayerUtils {
         val audioCapableFormats = adaptiveFormats.filter { it.isAudio }
         if (audioCapableFormats.isEmpty()) return null
 
-        val maxBitrate = audioCapableFormats.maxOfOrNull { it.bitrate } ?: return null
-
         fun scoreCodec(mimeType: String): Int = when {
             mimeType.contains("opus", ignoreCase = true) -> 2
             mimeType.contains("mp4a", ignoreCase = true) -> 1
             else -> 0
         }
 
+        fun scoreQualityTier(quality: String?): Int = when (quality) {
+            "AUDIO_QUALITY_HIGH" -> 3
+            "AUDIO_QUALITY_MEDIUM" -> 2
+            "AUDIO_QUALITY_LOW" -> 1
+            else -> 0
+        }
+
+        val qualityComparator = compareBy<PlayerResponse.StreamingData.Format> { it.isOriginal }
+            .thenBy { scoreQualityTier(it.audioQuality) }
+            .thenBy { it.audioChannels ?: 2 }
+            .thenBy { scoreCodec(it.mimeType) }
+            .thenBy { it.bitrate }
+
         val format = when (audioQuality) {
             AudioQuality.HIGH -> {
-                audioCapableFormats.maxWithOrNull(
-                    compareBy<PlayerResponse.StreamingData.Format> { format ->
-                        when (format.audioQuality) {
-                            "AUDIO_QUALITY_HIGH" -> 3
-                            "AUDIO_QUALITY_MEDIUM" -> 2
-                            "AUDIO_QUALITY_LOW" -> 1
-                            else -> 0
-                        }
-                    }.thenBy { it.audioChannels ?: 2 }
-                        .thenBy { scoreCodec(it.mimeType) }
-                        .thenBy { it.bitrate }
-                )
+                audioCapableFormats.maxWithOrNull(qualityComparator)
             }
 
             AudioQuality.LOW -> {
                 val cappedFormats = audioCapableFormats.filter { it.bitrate <= 128000 }
                 val lowFormat = cappedFormats
                     .filter { it.isOriginal }
-                    .maxByOrNull { it.bitrate }
-                    ?: cappedFormats.maxByOrNull { it.bitrate }
+                    .maxWithOrNull(compareBy<PlayerResponse.StreamingData.Format> { scoreCodec(it.mimeType) }.thenBy { it.bitrate })
+                    ?: cappedFormats.maxWithOrNull(compareBy<PlayerResponse.StreamingData.Format> { scoreCodec(it.mimeType) }.thenBy { it.bitrate })
                     ?: audioCapableFormats
                         .filter { it.isOriginal }
                         .minByOrNull { kotlin.math.abs(it.bitrate.toDouble() - 128000.0) }
-                    ?: audioCapableFormats.maxByOrNull { it.bitrate }
+                    ?: audioCapableFormats.maxWithOrNull(qualityComparator)
 
                 if (lowFormat != null) {
                     Timber.tag(logTag).d("Selected LOW format: itag=${lowFormat.itag}, bitrate: ${lowFormat.bitrate}")
@@ -551,19 +565,21 @@ object YTPlayerUtils {
             }
 
             AudioQuality.AUTO -> {
-                val targetBitrate = if (connectivityManager.isActiveNetworkMetered) 128000.0 else maxBitrate.toDouble()
-                val cappedFormats = audioCapableFormats.filter { it.bitrate <= targetBitrate }
-                val autoFormat = cappedFormats
-                    .filter { it.isOriginal }
-                    .maxByOrNull { it.bitrate }
-                    ?: cappedFormats.maxByOrNull { it.bitrate }
-                    ?: audioCapableFormats
-                        .filter { it.isOriginal }
-                        .minByOrNull { kotlin.math.abs(it.bitrate - targetBitrate) }
-                    ?: audioCapableFormats.maxByOrNull { it.bitrate }
+                // Allow up to 192 kbps on metered networks so Opus itag 251 (~130-165 kbps) is preferred over 128 kbps AAC.
+                val autoFormat = if (!connectivityManager.isActiveNetworkMetered) {
+                    audioCapableFormats.maxWithOrNull(qualityComparator)
+                } else {
+                    val meteredCap = 192000
+                    val cappedFormats = audioCapableFormats.filter { it.bitrate <= meteredCap }
+                    cappedFormats.maxWithOrNull(qualityComparator)
+                        ?: audioCapableFormats
+                            .filter { it.isOriginal }
+                            .minByOrNull { kotlin.math.abs(it.bitrate - meteredCap) }
+                        ?: audioCapableFormats.maxWithOrNull(qualityComparator)
+                }
 
                 if (autoFormat != null) {
-                    Timber.tag(logTag).d("Selected AUTO format: itag=${autoFormat.itag}, bitrate: ${autoFormat.bitrate}")
+                    Timber.tag(logTag).d("Selected AUTO format: itag=${autoFormat.itag}, mimeType=${autoFormat.mimeType}, bitrate=${autoFormat.bitrate}")
                 }
 
                 autoFormat
@@ -596,10 +612,11 @@ object YTPlayerUtils {
                 println("[PLAYBACK_DEBUG] Added cookie to validation request")
             }
 
-            val response = httpClient.newCall(requestBuilder.build()).execute()
-            val isSuccessful = response.isSuccessful
-            Timber.tag(logTag).d("Stream URL validation result: ${if (isSuccessful) "Success" else "Failed"} (${response.code})")
-            return isSuccessful
+            httpClient.newCall(requestBuilder.build()).execute().use { response ->
+                val isSuccessful = response.isSuccessful
+                Timber.tag(logTag).d("Stream URL validation result: ${if (isSuccessful) "Success" else "Failed"} (${response.code})")
+                return isSuccessful
+            }
         } catch (e: Exception) {
             Timber.tag(logTag).e(e, "Stream URL validation failed with exception")
             reportException(e)

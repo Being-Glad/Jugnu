@@ -77,6 +77,13 @@ class VolumeNormalizationAudioProcessor : AudioProcessor {
         val inputSize = inputBuffer.remaining()
         if (inputSize == 0) return
 
+        if (!applyGain) {
+            val out = replaceOutputBuffer(inputSize)
+            out.put(inputBuffer)
+            out.flip()
+            return
+        }
+
         val sampleCount = inputSize / bytesPerSample
         val out = replaceOutputBuffer(sampleCount * bytesPerSample)
 
@@ -86,15 +93,9 @@ class VolumeNormalizationAudioProcessor : AudioProcessor {
         when (encoding) {
             C.ENCODING_PCM_16BIT -> {
                 repeat(sampleCount) {
-                    val sample = inputBuffer.getShort()
-                    val processed = if (applyGain) {
-                        (sample * gain.linearGain)
-                            .coerceIn(-32768.0, 32767.0)
-                            .toInt()
-                            .toShort()
-                    } else {
-                        sample
-                    }
+                    val normalized = inputBuffer.getShort().toDouble() / 32768.0
+                    val limited = AudioLimiting.softLimit(normalized * gain.linearGain)
+                    val processed = (limited * 32767.0).coerceIn(-32768.0, 32767.0).toInt().toShort()
                     out.putShort(processed)
                 }
             }
@@ -105,14 +106,9 @@ class VolumeNormalizationAudioProcessor : AudioProcessor {
                     val b1 = inputBuffer.get().toInt() and 0xFF
                     val b2 = inputBuffer.get().toInt()
                     val sample = (b2 shl 16) or (b1 shl 8) or b0
-
-                    val processed = if (applyGain) {
-                        (sample * gain.linearGain)
-                            .coerceIn(-8388608.0, 8388607.0)
-                            .toInt()
-                    } else {
-                        sample
-                    }
+                    val normalized = sample.toDouble() / 8388608.0
+                    val limited = AudioLimiting.softLimit(normalized * gain.linearGain)
+                    val processed = (limited * 8388607.0).coerceIn(-8388608.0, 8388607.0).toInt()
                     out.put((processed and 0xFF).toByte())
                     out.put(((processed shr 8) and 0xFF).toByte())
                     out.put(((processed shr 16) and 0xFF).toByte())
@@ -121,28 +117,18 @@ class VolumeNormalizationAudioProcessor : AudioProcessor {
 
             C.ENCODING_PCM_32BIT -> {
                 repeat(sampleCount) {
-                    val sample = inputBuffer.getInt()
-                    val processed = if (applyGain) {
-                        (sample * gain.linearGain)
-                            .coerceIn(-2147483648.0, 2147483647.0)
-                            .toLong()
-                            .toInt()
-                    } else {
-                        sample
-                    }
+                    val normalized = inputBuffer.getInt().toDouble() / 2147483648.0
+                    val limited = AudioLimiting.softLimit(normalized * gain.linearGain)
+                    val processed = (limited * 2147483647.0).coerceIn(-2147483648.0, 2147483647.0).toLong().toInt()
                     out.putInt(processed)
                 }
             }
 
             C.ENCODING_PCM_FLOAT -> {
                 repeat(sampleCount) {
-                    val sample = inputBuffer.getFloat()
-                    val processed = if (applyGain) {
-                        (sample * gain.linearGain.toFloat()).coerceIn(-1.0f, 1.0f)
-                    } else {
-                        sample
-                    }
-                    out.putFloat(processed)
+                    val sample = inputBuffer.getFloat().toDouble()
+                    val limited = AudioLimiting.softLimit(sample * gain.linearGain)
+                    out.putFloat(limited.toFloat())
                 }
             }
         }

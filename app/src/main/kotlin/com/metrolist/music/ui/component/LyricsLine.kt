@@ -43,6 +43,8 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
+import com.metrolist.music.constants.LyricsPreferRomanizedKey
+import com.metrolist.music.utils.rememberPreference
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
@@ -142,7 +144,7 @@ internal fun LyricsLine(
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isCompactMode = lyricsTextSize <= 24f
+    val isCompactMode = lyricsTextSize <= 20f
     val density = LocalDensity.current
     
     val itemModifier = modifier
@@ -230,28 +232,18 @@ internal fun LyricsLine(
                 val animatedAlpha by animateFloatAsState(targetAlpha, tween(250), label = "lyricsLineAlpha")
                 val lineColor = expressiveAccent.copy(alpha = if (item.isBackground) focusedAlpha else animatedAlpha)
                 
+                val (preferRomanized, _) = rememberPreference(LyricsPreferRomanizedKey, defaultValue = false)
                 val romanizedTextState by item.romanizedTextFlow.collectAsStateWithLifecycle()
                 val romanizedText = romanizedTextState
-                val isRomanizedAvailable = romanizedText != null
-                val (mainTextRaw, subTextRaw) = remember(item.text, romanizedText, lyricsDisplayPreset, romanizeAsMain) {
-                    if (lyricsDisplayPreset == "SMART") {
-                        if (com.metrolist.music.lyrics.LyricsUtils.isLatinOrEnglish(item.text)) {
-                            Pair(item.text, null)
-                        } else if (com.metrolist.music.lyrics.LyricsUtils.isHindi(item.text)) {
-                            Pair(item.text, romanizedText)
-                        } else {
-                            if (isRomanizedAvailable) {
-                                Pair(romanizedText, item.text)
-                            } else {
-                                Pair(item.text, null)
-                            }
-                        }
+                val isRomanizedAvailable = !romanizedText.isNullOrBlank()
+                val mainTextRaw = remember(item.text, romanizedText, preferRomanized) {
+                    if (isRomanizedAvailable && preferRomanized) {
+                        romanizedText!!
                     } else {
-                        val main = if (romanizeAsMain && isRomanizedAvailable) romanizedText else item.text
-                        val sub = if (romanizeAsMain && isRomanizedAvailable) item.text else romanizedText
-                        Pair(main, sub)
+                        item.text
                     }
                 }
+                val subTextRaw: String? = null // Never show both simultaneously; toggled via top-right switch button
                 val mainText = if (item.isBackground) mainTextRaw.removePrefix("(").removeSuffix(")") else mainTextRaw
                 val subText = if (item.isBackground) subTextRaw?.removePrefix("(")?.removeSuffix(")") else subTextRaw
 
@@ -270,7 +262,7 @@ internal fun LyricsLine(
                     )
                 )
 
-                val effectiveWords = if (item.words?.isNotEmpty() == true) {
+                val effectiveWords = if (item.words?.isNotEmpty() == true && (!preferRomanized || !isRomanizedAvailable)) {
                     item.words
                 } else {
                     remember(mainText, item.time) {

@@ -5,6 +5,7 @@ import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.util.UnstableApi
 import com.metrolist.music.eq.data.ParametricEQ
 import com.metrolist.music.eq.data.ParametricEQBand
+import com.metrolist.music.playback.audio.AudioLimiting
 import timber.log.Timber
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -126,10 +127,9 @@ class CustomEqualizerAudioProcessor : AudioProcessor {
                 .d("Applied pending profile with ${filters.size} bands and ${profile.preamp} dB preamp")
         }
 
-        // Only support 16-bit PCM stereo/mono
-        if (encoding != C.ENCODING_PCM_16BIT || channelCount > 2) {
-            val exception = AudioProcessor.UnhandledAudioFormatException(inputAudioFormat)
-            throw exception // Rethrow, unsupported
+        // Support 16-bit and 32-bit float PCM mono/stereo
+        if ((encoding != C.ENCODING_PCM_16BIT && encoding != C.ENCODING_PCM_FLOAT) || channelCount !in 1..2) {
+            throw AudioProcessor.UnhandledAudioFormatException(inputAudioFormat)
         }
 
         isActive = true
@@ -175,82 +175,76 @@ class CustomEqualizerAudioProcessor : AudioProcessor {
 
         // Process audio samples
         when (encoding) {
-            C.ENCODING_PCM_16BIT -> {
-                // Ensure the output buffer is ready to receive data
-                // We don't set limit() here because putShort will advance position
-                processAudioBuffer16Bit(inputBuffer, outputBuffer)
-            }
-            else -> {
-                // Unsupported format, passthrough
-                outputBuffer.put(inputBuffer)
-            }
+            C.ENCODING_PCM_16BIT -> processAudioBuffer16Bit(inputBuffer, outputBuffer)
+            C.ENCODING_PCM_FLOAT -> processAudioBufferFloat(inputBuffer, outputBuffer)
+            else -> outputBuffer.put(inputBuffer)
         }
 
         outputBuffer.flip()
-        // inputBuffer position is already updated by processAudioBuffer16Bit/put
+        // inputBuffer position is already updated by processAudioBuffer/put
     }
 
     /**
-     * Process 16-bit PCM audio through all biquad filters
+     * Process 16-bit PCM audio through all biquad filters with soft-knee peak limiting
      */
     private fun processAudioBuffer16Bit(input: ByteBuffer, output: ByteBuffer) {
-        // Ensure we are reading from the current position
-        // Input is ready to be read from position() to limit()
-        // Output is ready to be written to from position()
+        input.order(ByteOrder.LITTLE_ENDIAN)
+        output.order(ByteOrder.LITTLE_ENDIAN)
+        val frameCount = (input.remaining() / 2) / channelCount
 
-        val sampleCount = input.remaining() / 2 // 2 bytes per 16-bit sample
-
-        repeat(sampleCount / channelCount) {
-            when (channelCount) {
-                1 -> {
-                    // Mono
-                    val sample = input.getShort().toDouble() / 32768.0 // Normalize to [-1, 1]
-                    var processed = sample
-
-                    // Apply all filters in series
-                    for (filter in filters) {
-                        processed = filter.processSample(processed)
-                    }
-
-                    // Apply preamp gain
-                    processed *= preampGain
-
-                    // Clamp and convert back to 16-bit
-                    val outputSample = (processed * 32768.0).coerceIn(-32768.0, 32767.0).toInt().toShort()
-                    output.putShort(outputSample)
+        repeat(frameCount) {
+            if (channelCount == 1) {
+                var processed = input.getShort().toDouble() / 32768.0
+                for (filter in filters) {
+                    processed = filter.processSample(processed)
                 }
-                2 -> {
-                    // Stereo
-                    val leftSample = input.getShort().toDouble() / 32768.0
-                    val rightSample = input.getShort().toDouble() / 32768.0
-
-                    var processedLeft = leftSample
-                    var processedRight = rightSample
-
-                    // Apply all filters in series
-                    for (filter in filters) {
-                        val (left, right) = filter.processStereo(processedLeft, processedRight)
-                        processedLeft = left
-                        processedRight = right
-                    }
-
-                    // Apply preamp gain
-                    processedLeft *= preampGain
-                    processedRight *= preampGain
-
-                    // Clamp and convert back to 16-bit
-                    val outputLeft = (processedLeft * 32768.0).coerceIn(-32768.0, 32767.0).toInt().toShort()
-                    val outputRight = (processedRight * 32768.0).coerceIn(-32768.0, 32767.0).toInt().toShort()
-
-                    output.putShort(outputLeft)
-                    output.putShort(outputRight)
+                val limited = AudioLimiting.softLimit(processed * preampGain)
+                val outputSample = (limited * 32767.0).coerceIn(-32768.0, 32767.0).toInt().toShort()
+                output.putShort(outputSample)
+            } else {
+                var processedLeft = input.getShort().toDouble() / 32768.0
+                var processedRight = input.getShort().toDouble() / 32768.0
+                for (filter in filters) {
+                    val (left, right) = filter.processStereo(processedLeft, processedRight)
+                    processedLeft = left
+                    processedRight = right
                 }
-                else -> {
-                    // Should not happen as configure rejects > 2 channels
-                    repeat(channelCount) {
-                        output.putShort(input.getShort())
-                    }
+                val limitedLeft = AudioLimiting.softLimit(processedLeft * preampGain)
+                val limitedRight = AudioLimiting.softLimit(processedRight * preampGain)
+                output.putShort((limitedLeft * 32767.0).coerceIn(-32768.0, 32767.0).toInt().toShort())
+                output.putShort((limitedRight * 32767.0).coerceIn(-32768.0, 32767.0).toInt().toShort())
+            }
+        }
+    }
+
+    /**
+     * Process 32-bit float PCM audio through all biquad filters with soft-knee peak limiting
+     */
+    private fun processAudioBufferFloat(input: ByteBuffer, output: ByteBuffer) {
+        input.order(ByteOrder.LITTLE_ENDIAN)
+        output.order(ByteOrder.LITTLE_ENDIAN)
+        val frameCount = (input.remaining() / 4) / channelCount
+
+        repeat(frameCount) {
+            if (channelCount == 1) {
+                var processed = input.getFloat().toDouble()
+                for (filter in filters) {
+                    processed = filter.processSample(processed)
                 }
+                val limited = AudioLimiting.softLimit(processed * preampGain)
+                output.putFloat(limited.toFloat())
+            } else {
+                var processedLeft = input.getFloat().toDouble()
+                var processedRight = input.getFloat().toDouble()
+                for (filter in filters) {
+                    val (left, right) = filter.processStereo(processedLeft, processedRight)
+                    processedLeft = left
+                    processedRight = right
+                }
+                val limitedLeft = AudioLimiting.softLimit(processedLeft * preampGain)
+                val limitedRight = AudioLimiting.softLimit(processedRight * preampGain)
+                output.putFloat(limitedLeft.toFloat())
+                output.putFloat(limitedRight.toFloat())
             }
         }
     }

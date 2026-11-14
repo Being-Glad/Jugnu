@@ -5,26 +5,24 @@
 
 package com.metrolist.music.ui.screens
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import com.metrolist.music.constants.DarkModeKey
 import com.metrolist.music.constants.PureBlackKey
+import com.metrolist.music.ui.screens.settings.DarkMode
+import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.ui.utils.glassCard
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -38,7 +36,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import com.metrolist.innertube.models.SongItem
 import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalNavController
 import com.metrolist.music.LocalPlayerConnection
@@ -66,41 +63,45 @@ fun AiRecommendationScreen(
     val playerConnection = LocalPlayerConnection.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val mediaMetadata by playerConnection?.mediaMetadata?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(null) }
 
     val isSystemDark = isSystemInDarkTheme()
+    val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
     val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
-    val isPureBlack = pureBlack && isSystemDark
+    val useDarkTheme = remember(darkTheme, isSystemDark) {
+        when (darkTheme) {
+            DarkMode.AUTO -> isSystemDark
+            DarkMode.ON -> true
+            DarkMode.OFF -> false
+        }
+    }
+    val isPureBlack = pureBlack && useDarkTheme
 
-    // Neon colors for premium theme
-    val neonTeal = Color(0xFF00F2FE)
-    val neonViolet = Color(0xFF4FACFE)
-    val obsidianBg = Color(0xFF070809)
-    val actualBg = if (isPureBlack) Color.Black else obsidianBg
-    val cardBg = Color(0xFF121316).copy(alpha = 0.8f)
-
-    // Animation for breathing button/glow
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 0.98f,
-        targetValue = 1.02f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "scale"
-    )
+    val colorScheme = MaterialTheme.colorScheme
+    val accentPrimary = if (useDarkTheme) Color(0xFF00F2FE) else colorScheme.primary
+    val accentSecondary = if (useDarkTheme) Color(0xFF4FACFE) else colorScheme.secondary
+    val actualBg = when {
+        isPureBlack -> Color.Black
+        useDarkTheme -> Color(0xFF070809)
+        else -> colorScheme.background
+    }
+    val cardBg = if (useDarkTheme) Color(0xFF121316).copy(alpha = 0.85f) else colorScheme.surfaceVariant.copy(alpha = 0.7f)
+    val primaryTextColor = if (useDarkTheme) Color.White else colorScheme.onSurface
+    val secondaryTextColor = if (useDarkTheme) Color.LightGray else colorScheme.onSurfaceVariant
+    val buttonContentColor = if (useDarkTheme) Color.Black else colorScheme.onPrimary
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = "Discover Mix",
+                        text = stringResource(R.string.discover_mix),
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = primaryTextColor
                     )
                 },
                 navigationIcon = {
@@ -111,13 +112,13 @@ fun AiRecommendationScreen(
                         Icon(
                             painter = painterResource(R.drawable.arrow_back),
                             contentDescription = null,
-                            tint = Color.White
+                            tint = primaryTextColor
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = actualBg,
-                    titleContentColor = Color.White
+                    titleContentColor = primaryTextColor
                 )
             )
         },
@@ -141,7 +142,7 @@ fun AiRecommendationScreen(
                             if (isPureBlack) {
                                 Modifier.background(Color.Black, cardShape)
                             } else {
-                                Modifier.glassCard(shape = cardShape, borderColor = neonTeal)
+                                Modifier.glassCard(shape = cardShape, borderColor = accentPrimary, backgroundColor = cardBg)
                             }
                         ),
                     shape = cardShape,
@@ -165,24 +166,24 @@ fun AiRecommendationScreen(
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "RECOMMENDATION SEED",
+                                text = stringResource(R.string.recommendation_seed),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = neonTeal,
+                                color = accentPrimary,
                                 letterSpacing = 1.sp
                             )
                             Text(
                                 text = mediaMetadata?.title ?: "",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White,
+                                color = primaryTextColor,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = mediaMetadata?.artists?.joinToString(", ") { it.name } ?: "",
                                 fontSize = 14.sp,
-                                color = Color.LightGray,
+                                color = secondaryTextColor,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -198,7 +199,7 @@ fun AiRecommendationScreen(
                             if (isPureBlack) {
                                 Modifier.background(Color.Black, cardShape)
                             } else {
-                                Modifier.glassCard(shape = cardShape)
+                                Modifier.glassCard(shape = cardShape, backgroundColor = cardBg)
                             }
                         ),
                     shape = cardShape,
@@ -212,15 +213,15 @@ fun AiRecommendationScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "No track playing. Generating mix from Liked Songs fallback.",
+                            text = stringResource(R.string.no_track_playing_mix_fallback),
                             fontSize = 14.sp,
-                            color = Color.LightGray
+                            color = secondaryTextColor
                         )
                     }
                 }
             }
 
-            // Glowing Generate Button
+            // Generate Button
             Button(
                 onClick = {
                     viewModel.generateRecommendations(mediaMetadata?.id ?: "")
@@ -237,15 +238,15 @@ fun AiRecommendationScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
-                            Brush.linearGradient(listOf(neonTeal, neonViolet)),
+                            Brush.linearGradient(listOf(accentPrimary, accentSecondary)),
                             shape = RoundedCornerShape(28.dp)
                         )
                         .padding(horizontal = 24.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Generate Spotify-style Mix",
-                        color = Color.Black,
+                        text = stringResource(R.string.generate_discovery_mix),
+                        color = buttonContentColor,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
                     )
@@ -268,12 +269,12 @@ fun AiRecommendationScreen(
                                 painter = painterResource(R.drawable.radio),
                                 contentDescription = null,
                                 modifier = Modifier.size(64.dp),
-                                tint = Color.Gray
+                                tint = secondaryTextColor
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Tap Generate to build your personalized discovery mix.",
-                                color = Color.Gray,
+                                text = stringResource(R.string.tap_generate_discovery_mix),
+                                color = secondaryTextColor,
                                 fontSize = 14.sp
                             )
                         }
@@ -284,13 +285,13 @@ fun AiRecommendationScreen(
                             verticalArrangement = Arrangement.Center
                         ) {
                             CircularProgressIndicator(
-                                color = neonTeal,
+                                color = accentPrimary,
                                 modifier = Modifier.size(50.dp)
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = "Fetching smart recommendations...",
-                                color = Color.White,
+                                text = stringResource(R.string.fetching_smart_recommendations),
+                                color = primaryTextColor,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Medium
                             )
@@ -298,10 +299,11 @@ fun AiRecommendationScreen(
                     }
                     is RecommendationViewModel.UiState.Error -> {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = state.message, color = Color.Red, fontSize = 14.sp)
+                            Text(text = state.message, color = colorScheme.error, fontSize = 14.sp)
                         }
                     }
                     is RecommendationViewModel.UiState.Success -> {
+                        val mixQueueTitle = stringResource(R.string.discover_mix)
                         Column(modifier = Modifier.fillMaxSize()) {
                             Row(
                                 modifier = Modifier
@@ -311,10 +313,10 @@ fun AiRecommendationScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "Generated Queue (${state.songs.size})",
+                                    text = stringResource(R.string.generated_queue_count, state.songs.size),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 15.sp,
-                                    color = Color.White
+                                    color = primaryTextColor
                                 )
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     TextButton(
@@ -336,27 +338,28 @@ fun AiRecommendationScreen(
                                                         createdPlaylist,
                                                         state.songs.map { it.id to it.setVideoId }
                                                     )
+                                                    val message = context.getString(R.string.saved_as_playlist, playlistName)
                                                     withContext(Dispatchers.Main) {
-                                                        // Inform user or show success
+                                                        snackbarHostState.showSnackbar(message)
                                                     }
                                                 }
                                             }
                                         }
                                     ) {
-                                        Text("Save as Playlist", color = neonTeal)
+                                        Text(stringResource(R.string.save_as_playlist), color = accentPrimary)
                                     }
 
                                     TextButton(
                                         onClick = {
                                             playerConnection?.playQueue(
                                                 ListQueue(
-                                                    title = "AI Discover Mix",
+                                                    title = mixQueueTitle,
                                                     items = state.songs.map { it.toMediaItem() }
                                                 )
                                             )
                                         }
                                     ) {
-                                        Text("Play All", color = neonViolet)
+                                        Text(stringResource(R.string.play_all), color = accentSecondary)
                                     }
                                 }
                             }
@@ -375,7 +378,7 @@ fun AiRecommendationScreen(
                                             .clickable {
                                                 playerConnection?.playQueue(
                                                     ListQueue(
-                                                        title = "AI Discover Mix",
+                                                        title = mixQueueTitle,
                                                         items = state.songs.map { it.toMediaItem() },
                                                         startIndex = state.songs.indexOf(song)
                                                     )
@@ -405,14 +408,14 @@ fun AiRecommendationScreen(
                                                 text = song.title,
                                                 fontSize = 14.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color.White,
+                                                color = primaryTextColor,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis
                                             )
                                             Text(
                                                 text = song.artists.joinToString(", ") { it.name },
                                                 fontSize = 12.sp,
-                                                color = Color.LightGray,
+                                                color = secondaryTextColor,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis
                                             )

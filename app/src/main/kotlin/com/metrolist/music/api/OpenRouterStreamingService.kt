@@ -142,7 +142,7 @@ Output MUST be a JSON array with EXACTLY $lineCount strings."""
                                 addHeader("Authorization", "Bearer ${apiKey.trim()}")
                             }
                         }.addHeader("Content-Type", "application/json")
-                        .addHeader("HTTP-Referer", "https://github.com/ompandey/Jugnu")
+                        .addHeader("HTTP-Referer", "https://github.com/Being-Glad/Jugnu")
                         .addHeader("X-Title", "Jugnu")
                         .post(jsonBody.toString().toRequestBody(JSON))
                         .build()

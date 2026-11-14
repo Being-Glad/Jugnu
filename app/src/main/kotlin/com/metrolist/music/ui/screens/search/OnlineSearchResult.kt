@@ -169,7 +169,7 @@ fun OnlineSearchResult(
     }
 
     val pauseSearchHistory by rememberPreference(PauseSearchHistoryKey, defaultValue = false)
-    val hideVideoSongs by rememberPreference(HideVideoSongsKey, defaultValue = false)
+    val hideVideoSongs by rememberPreference(HideVideoSongsKey, defaultValue = true)
     val autoRadioQueue by rememberPreference(AutoRadioQueueKey, defaultValue = true)
 
     BackHandler(enabled = isSearchFocused) {

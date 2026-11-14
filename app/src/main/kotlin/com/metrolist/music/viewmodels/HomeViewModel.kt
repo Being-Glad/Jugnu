@@ -6,6 +6,9 @@
 package com.metrolist.music.viewmodels
 
 import android.content.Context
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -26,6 +29,7 @@ import com.metrolist.innertube.pages.ChartsPage
 import com.metrolist.innertube.pages.ExplorePage
 import com.metrolist.innertube.pages.HomePage
 import com.metrolist.innertube.utils.completed
+import com.metrolist.music.constants.ContentCountryKey
 import com.metrolist.music.constants.HideExplicitKey
 import com.metrolist.music.constants.HideVideoSongsKey
 import com.metrolist.music.constants.HideYoutubeShortsKey
@@ -33,6 +37,7 @@ import com.metrolist.music.constants.InnerTubeCookieKey
 import com.metrolist.music.constants.QuickPicks
 import com.metrolist.music.constants.QuickPicksKey
 import com.metrolist.music.constants.ShowWrappedCardKey
+import com.metrolist.music.constants.SYSTEM_DEFAULT
 import com.metrolist.music.constants.WrappedSeenKey
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.Album
@@ -44,6 +49,7 @@ import com.metrolist.music.extensions.toEnum
 import com.metrolist.music.models.SimilarRecommendation
 import com.metrolist.music.ui.screens.wrapped.WrappedAudioService
 import com.metrolist.music.ui.screens.wrapped.WrappedManager
+import com.metrolist.music.utils.CountryDetector
 import com.metrolist.music.utils.SyncUtils
 import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.get
@@ -56,6 +62,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -105,6 +112,7 @@ class HomeViewModel @Inject constructor(
     val selectedChip = MutableStateFlow<HomePage.Chip?>(null)
     private val previousHomePage = MutableStateFlow<HomePage?>(null)
     val trendingSongs = MutableStateFlow<List<SongItem>?>(null)
+    val trendingArtists = MutableStateFlow<List<ArtistItem>?>(null)
     val trendingArtistImages = MutableStateFlow<Map<String, String>>(emptyMap())
     private val allTrendingSongsList = mutableListOf<SongItem>()
 
@@ -294,7 +302,7 @@ class HomeViewModel @Inject constructor(
     private var isProcessingAccountData = false
 
     private suspend fun getDailyDiscover() {
-        val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
+        val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, true)
         val likedSongs = database.likedSongsByCreateDateAsc().first()
         if (likedSongs.isEmpty()) return
 
@@ -342,7 +350,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun getQuickPicks() {
-        val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
+        val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, true)
         when (quickPicksEnum.first()) {
             QuickPicks.QUICK_PICKS -> {
                 val relatedSongs = database.quickPicks().first().filterVideoSongs(hideVideoSongs)
@@ -460,146 +468,192 @@ class HomeViewModel @Inject constructor(
         communityPlaylists.value = playlists.shuffled()
     }
 
-    private suspend fun fetchTrendingSongs() {
+    private suspend fun fetchTrendingSongs(forceRefresh: Boolean = false) {
         val hideExplicit = context.dataStore.get(HideExplicitKey, false)
-        val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
+        val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, true)
         val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
 
-        println("[JUGNU_DEBUG] Starting fetchTrendingSongs")
+        val contentCountry = context.dataStore.get(ContentCountryKey, SYSTEM_DEFAULT)
+        val activeCountry = when (contentCountry) {
+            CountryDetector.GLOBAL_CODE -> "GLOBAL"
+            SYSTEM_DEFAULT -> CountryDetector.detectCountry(context)
+            else -> contentCountry
+        }
+        val countryChanged = cachedTrendingCountry != null && cachedTrendingCountry != activeCountry
 
-        // 1. Try Charts page
-        YouTube.getChartsPage().onSuccess { page ->
-            val songsSection = page.sections.firstOrNull { 
-                it.chartType == ChartsPage.ChartType.TRENDING || it.title.contains("songs", ignoreCase = true)
+        val now = System.currentTimeMillis()
+        val cachedSongs = cachedTrendingSongs
+        if (!forceRefresh && !countryChanged && !cachedSongs.isNullOrEmpty() && (now - cachedTrendingFetchedAtMs) <= TRENDING_CACHE_TTL_MS) {
+            allTrendingSongsList.clear()
+            allTrendingSongsList.addAll(cachedSongs)
+            trendingSongs.value = cachedSongs.take(12)
+            cachedTrendingArtists?.takeIf { it.isNotEmpty() }?.let {
+                trendingArtists.value = it
             }
-            val items = (songsSection?.items ?: page.sections.firstOrNull()?.items ?: emptyList())
+            if (trendingArtists.value.isNullOrEmpty()) {
+                viewModelScope.launch(Dispatchers.IO) { fetchTrendingArtistImages() }
+            }
+            return
+        }
+
+        Timber.tag("HomeViewModel").d("Fetching fresh trending charts for country=$activeCountry (forceRefresh=$forceRefresh, countryChanged=$countryChanged)")
+
+        // 1. Try YouTube Music Charts page (real regional Trending Songs + Top Artists)
+        YouTube.getChartsPage().onSuccess { page ->
+            val artistItems = page.sections
+                .sortedByDescending { section ->
+                    when {
+                        section.title.contains("artist", ignoreCase = true) -> 2
+                        section.chartType == ChartsPage.ChartType.TRENDING -> 1
+                        else -> 0
+                    }
+                }
+                .flatMap { it.items.filterIsInstance<ArtistItem>() }
+                .distinctBy { it.id }
+
+            if (artistItems.isNotEmpty()) {
+                val topArtists = artistItems.take(12)
+                cachedTrendingArtists = topArtists
+                trendingArtists.value = topArtists
+            }
+
+            val songSections = page.sections.filter { section ->
+                section.items.any { it is SongItem }
+            }
+            val preferredSongSection =
+                songSections.firstOrNull {
+                    it.chartType == ChartsPage.ChartType.TRENDING &&
+                        !it.title.contains("video", ignoreCase = true)
+                }
+                    ?: songSections.firstOrNull {
+                        it.title.contains("top songs", ignoreCase = true)
+                    }
+                    ?: songSections.firstOrNull {
+                        !it.title.contains("video", ignoreCase = true)
+                    }
+                    ?: songSections.firstOrNull()
+
+            val items = (preferredSongSection?.items ?: emptyList())
                 .filterIsInstance<SongItem>()
+                .distinctBy { it.id }
                 .filterExplicit(hideExplicit)
                 .filterVideoSongs(hideVideoSongs)
                 .filterYoutubeShorts(hideYoutubeShorts)
-            
+
             if (items.isNotEmpty()) {
-                println("[JUGNU_DEBUG] Loaded ${items.size} songs from Charts page")
+                Timber.tag("HomeViewModel").d("Loaded ${items.size} trending songs from Charts page (${preferredSongSection?.title})")
                 allTrendingSongsList.clear()
                 allTrendingSongsList.addAll(items)
                 cachedTrendingSongs = items
-                trendingSongs.value = items.shuffled().take(8)
-                viewModelScope.launch(Dispatchers.IO) { fetchTrendingArtistImages() }
+                cachedTrendingCountry = activeCountry
+                cachedTrendingFetchedAtMs = System.currentTimeMillis()
+                trendingSongs.value = selectFeaturedTrending(items, rotateOnRefresh = forceRefresh && !cachedSongs.isNullOrEmpty())
+                saveTrendingDiskCache(context, items)
+                if (artistItems.isEmpty()) {
+                    viewModelScope.launch(Dispatchers.IO) { fetchTrendingArtistImages(refreshMissing = true) }
+                }
                 return
             }
         }.onFailure {
-            println("[JUGNU_DEBUG] Charts page failed: ${it.message}")
+            Timber.tag("HomeViewModel").w(it, "Charts page failed")
             reportException(it)
         }
 
         // 2. Try global trending playlist
-        println("[JUGNU_DEBUG] Trying global trending playlist fallback")
         YouTube.playlist("PL4fGSI1pDJn5kI81J1fYxT5m1JIuxEUMS").onSuccess { page ->
             val items = page.songs
+                .distinctBy { it.id }
                 .filterExplicit(hideExplicit)
                 .filterVideoSongs(hideVideoSongs)
                 .filterYoutubeShorts(hideYoutubeShorts)
             if (items.isNotEmpty()) {
-                println("[JUGNU_DEBUG] Loaded ${items.size} songs from Trending playlist")
                 allTrendingSongsList.clear()
                 allTrendingSongsList.addAll(items)
                 cachedTrendingSongs = items
-                trendingSongs.value = items.shuffled().take(8)
-                viewModelScope.launch(Dispatchers.IO) { fetchTrendingArtistImages() }
+                cachedTrendingFetchedAtMs = System.currentTimeMillis()
+                trendingSongs.value = items.take(12)
+                saveTrendingDiskCache(context, items)
+                viewModelScope.launch(Dispatchers.IO) { fetchTrendingArtistImages(refreshMissing = true) }
                 return
             }
         }.onFailure {
-            println("[JUGNU_DEBUG] Trending playlist failed: ${it.message}")
             reportException(it)
         }
 
         // 3. Try global hits playlist
-        println("[JUGNU_DEBUG] Trying global hits playlist fallback")
         YouTube.playlist("PL4fGSI1pDJn6jXS_O5LiqBh3UXLKXkHs7").onSuccess { page ->
             val items = page.songs
+                .distinctBy { it.id }
                 .filterExplicit(hideExplicit)
                 .filterVideoSongs(hideVideoSongs)
                 .filterYoutubeShorts(hideYoutubeShorts)
             if (items.isNotEmpty()) {
-                println("[JUGNU_DEBUG] Loaded ${items.size} songs from Global Hits playlist")
                 allTrendingSongsList.clear()
                 allTrendingSongsList.addAll(items)
                 cachedTrendingSongs = items
-                trendingSongs.value = items.shuffled().take(8)
-                viewModelScope.launch(Dispatchers.IO) { fetchTrendingArtistImages() }
+                cachedTrendingFetchedAtMs = System.currentTimeMillis()
+                trendingSongs.value = items.take(12)
+                saveTrendingDiskCache(context, items)
+                viewModelScope.launch(Dispatchers.IO) { fetchTrendingArtistImages(refreshMissing = true) }
                 return
             }
         }.onFailure {
-            println("[JUGNU_DEBUG] Global Hits playlist failed: ${it.message}")
             reportException(it)
         }
 
-        // 3.5. Try YouTube search fallback for Trending Songs
-        println("[JUGNU_DEBUG] Trying YouTube search fallback for Trending Songs")
-        YouTube.search("Trending Songs", YouTube.SearchFilter.FILTER_SONG).onSuccess { result ->
-            val items = result.items.filterIsInstance<SongItem>()
-                .filterExplicit(hideExplicit)
-                .filterVideoSongs(hideVideoSongs)
-                .filterYoutubeShorts(hideYoutubeShorts)
-            if (items.isNotEmpty()) {
-                println("[JUGNU_DEBUG] Loaded ${items.size} songs from YouTube search")
-                allTrendingSongsList.clear()
-                allTrendingSongsList.addAll(items)
-                cachedTrendingSongs = items
-                trendingSongs.value = items.shuffled().take(8)
-                viewModelScope.launch(Dispatchers.IO) { fetchTrendingArtistImages() }
-                return
-            }
-        }.onFailure {
-            println("[JUGNU_DEBUG] YouTube search fallback failed: ${it.message}")
-            reportException(it)
-        }
-
-        // 4. Try homePage sections
-        println("[JUGNU_DEBUG] Trying homePage sections fallback")
+        // 4. Try homePage sections (do NOT persist into cachedTrendingFetchedAtMs so next open retries Charts)
         val homeSongs = homePage.value?.sections?.flatMap { it.items }
             ?.filterIsInstance<SongItem>()
+            ?.distinctBy { it.id }
             ?.filterExplicit(hideExplicit)
             ?.filterVideoSongs(hideVideoSongs)
             ?.filterYoutubeShorts(hideYoutubeShorts)
             ?: emptyList()
 
         if (homeSongs.isNotEmpty()) {
-            println("[JUGNU_DEBUG] Loaded ${homeSongs.size} songs from homePage sections")
             allTrendingSongsList.clear()
             allTrendingSongsList.addAll(homeSongs)
-            trendingSongs.value = homeSongs.shuffled().take(8)
+            cachedTrendingSongs = homeSongs
+            trendingSongs.value = homeSongs.take(12)
+            fetchTrendingArtistImages(refreshMissing = true)
             return
         }
 
-        // 5. Try quickPicks
-        println("[JUGNU_DEBUG] Trying quickPicks fallback")
-        val quickSongs = quickPicks.value?.map { song ->
-            SongItem(
-                id = song.id,
-                title = song.title,
-                artists = song.artists.map { com.metrolist.innertube.models.Artist(name = it.name, id = it.id) },
-                thumbnail = song.thumbnailUrl ?: "",
-                explicit = false
-            )
-        } ?: emptyList()
+        // 5. Try quickPicks only if trendingSongs is still empty (offline fallback, never cached)
+        if (trendingSongs.value.isNullOrEmpty()) {
+            val quickSongs = quickPicks.value?.map { song ->
+                SongItem(
+                    id = song.id,
+                    title = song.title,
+                    artists = song.artists.map { com.metrolist.innertube.models.Artist(name = it.name, id = it.id) },
+                    thumbnail = song.thumbnailUrl ?: "",
+                    explicit = false
+                )
+            } ?: emptyList()
 
-        if (quickSongs.isNotEmpty()) {
-            println("[JUGNU_DEBUG] Loaded ${quickSongs.size} songs from quickPicks")
-            allTrendingSongsList.clear()
-            allTrendingSongsList.addAll(quickSongs)
-            trendingSongs.value = quickSongs.shuffled().take(8)
-        } else {
-            println("[JUGNU_DEBUG] All fallbacks failed!")
+            if (quickSongs.isNotEmpty()) {
+                allTrendingSongsList.clear()
+                allTrendingSongsList.addAll(quickSongs)
+                trendingSongs.value = quickSongs.take(12)
+                fetchTrendingArtistImages(refreshMissing = false)
+            }
         }
-        // Fetch real artist profile photos now that songs are set
-        fetchTrendingArtistImages()
+    }
+
+    /**
+     * Keeps the top 3 chart leaders anchored while rotating the remaining slots across top-25 chart tracks
+     * on explicit refreshes so pull-to-refresh surfaces fresh chart songs.
+     */
+    private fun selectFeaturedTrending(items: List<SongItem>, rotateOnRefresh: Boolean): List<SongItem> {
+        if (!rotateOnRefresh || items.size <= 12) return items.take(12)
+        val anchors = items.take(3)
+        val pool = items.drop(3).take(22).shuffled()
+        return (anchors + pool.take(9)).distinctBy { it.id }
     }
 
     fun refreshTrendingSongs() {
-        if (allTrendingSongsList.isNotEmpty()) {
-            trendingSongs.value = allTrendingSongsList.shuffled().take(8)
-            viewModelScope.launch(Dispatchers.IO) { fetchTrendingArtistImages() }
+        viewModelScope.launch(Dispatchers.IO) {
+            fetchTrendingSongs(forceRefresh = true)
         }
     }
 
@@ -607,29 +661,31 @@ class HomeViewModel @Inject constructor(
      * Fetches real artist profile photos for each unique artist in trendingSongs.
      * Replaces album art with actual artist headshots via YouTube artist page.
      */
-    private suspend fun fetchTrendingArtistImages() {
+    private suspend fun fetchTrendingArtistImages(refreshMissing: Boolean = false) {
         val songs = trendingSongs.value ?: return
         val uniqueArtists = songs
             .mapNotNull { song -> song.artists.firstOrNull { it.id != null } }
             .distinctBy { it.id!! }
-            .take(8)
+            .take(12)
 
         val images = java.util.Collections.synchronizedMap(mutableMapOf<String, String>())
-        if (!cachedArtistImages.isNullOrEmpty()) {
+        if (!refreshMissing && !cachedArtistImages.isNullOrEmpty()) {
             images.putAll(cachedArtistImages!!)
         }
 
         coroutineScope {
             uniqueArtists.forEach { artist ->
                 launch(Dispatchers.IO) {
-                    val dbArtist = database.getArtistById(artist.id!!)
-                    if (!dbArtist?.thumbnailUrl.isNullOrEmpty()) {
-                        images[artist.id!!] = dbArtist.thumbnailUrl!!
+                    val artistId = artist.id!!
+                    if (!refreshMissing && images.containsKey(artistId)) return@launch
+                    val dbThumb = database.getArtistById(artistId)?.thumbnailUrl
+                    if (!dbThumb.isNullOrEmpty()) {
+                        images[artistId] = dbThumb
                     } else {
-                        YouTube.artist(artist.id!!).onSuccess { page ->
+                        YouTube.artist(artistId).onSuccess { page ->
                             val thumb = page.artist.thumbnail
                             if (!thumb.isNullOrEmpty()) {
-                                images[artist.id!!] = thumb
+                                images[artistId] = thumb
                             }
                         }
                     }
@@ -645,7 +701,7 @@ class HomeViewModel @Inject constructor(
     private suspend fun load() {
         isLoading.value = true
         val hideExplicit = context.dataStore.get(HideExplicitKey, false)
-        val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
+        val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, true)
         val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
         val fromTimeStamp = LocalDateTime.now().minusWeeks(2)
 
@@ -676,7 +732,7 @@ class HomeViewModel @Inject constructor(
         isLoading.value = false
 
         // Phase 2: All heavy network operations run concurrently in background without blocking screen rendering
-        viewModelScope.launch(Dispatchers.IO) { fetchTrendingSongs() }
+        viewModelScope.launch(Dispatchers.IO) { fetchTrendingSongs(forceRefresh = true) }
 
         viewModelScope.launch(Dispatchers.IO) {
             YouTube.home().onSuccess { page ->
@@ -782,7 +838,7 @@ class HomeViewModel @Inject constructor(
     fun loadMoreYouTubeItems(continuation: String?) {
         if (continuation == null || _isLoadingMore.value) return
         val hideExplicit = context.dataStore.get(HideExplicitKey, false)
-        val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
+        val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, true)
         val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
 
         viewModelScope.launch(Dispatchers.IO) {
@@ -817,7 +873,7 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             val hideExplicit = context.dataStore.get(HideExplicitKey, false)
-            val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
+            val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, true)
             val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
             val nextSections = YouTube.home(params = chip.endpoint?.params).getOrNull() ?: return@launch
 
@@ -871,7 +927,7 @@ class HomeViewModel @Inject constructor(
             val currentChip = selectedChip.value
             if (currentChip != null) {
                 val hideExplicit = context.dataStore.get(HideExplicitKey, false)
-                val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
+                val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, true)
                 val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
                 val nextSections = YouTube.home(params = currentChip.endpoint?.params).getOrNull()
                 if (nextSections != null) {
@@ -890,7 +946,9 @@ class HomeViewModel @Inject constructor(
         // Run sync when user manually refreshes
         viewModelScope.launch(Dispatchers.IO) {
             syncUtils.tryAutoSync()
-            refreshTrendingSongs()
+            if (selectedChip.value != null) {
+                fetchTrendingSongs(forceRefresh = true)
+            }
         }
     }
 
@@ -900,11 +958,22 @@ class HomeViewModel @Inject constructor(
     }
 
     init {
-        // Instant pre-population of trending songs from cache or local DB
+        // Fast restore of trending carousel from disk cache on cold launch
+        if (cachedTrendingSongs.isNullOrEmpty()) {
+            val diskCached = loadTrendingDiskCache(context)
+            if (!diskCached.isNullOrEmpty()) {
+                cachedTrendingSongs = diskCached
+            }
+        }
+
+        // Instant pre-population of trending songs & artists from cache or local DB while fresh fetch runs
         if (!cachedTrendingSongs.isNullOrEmpty()) {
             allTrendingSongsList.clear()
             allTrendingSongsList.addAll(cachedTrendingSongs!!)
-            trendingSongs.value = cachedTrendingSongs!!.shuffled().take(8)
+            trendingSongs.value = cachedTrendingSongs!!.take(12)
+            cachedTrendingArtists?.takeIf { it.isNotEmpty() }?.let {
+                trendingArtists.value = it
+            }
             if (!cachedArtistImages.isNullOrEmpty()) {
                 trendingArtistImages.value = cachedArtistImages!!
             }
@@ -994,9 +1063,33 @@ class HomeViewModel @Inject constructor(
                     }
                 }
         }
+
+        // Listen for ContentCountryKey preference changes and reload trending charts instantly
+        viewModelScope.launch(Dispatchers.IO) {
+            context.dataStore.data
+                .map { it[ContentCountryKey] }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect {
+                    fetchTrendingSongs(forceRefresh = true)
+                }
+        }
     }
 
     private var isHomeDataLoaded = false
+
+    fun onHomeScreenOpened() {
+        if (!isHomeDataLoaded) {
+            loadHomeData()
+            return
+        }
+        val isTrendingStale = (System.currentTimeMillis() - cachedTrendingFetchedAtMs) > TRENDING_CACHE_TTL_MS
+        if (isTrendingStale) {
+            viewModelScope.launch(Dispatchers.IO) {
+                fetchTrendingSongs(forceRefresh = true)
+            }
+        }
+    }
 
     fun loadHomeData() {
         if (isHomeDataLoaded) return
@@ -1020,7 +1113,82 @@ class HomeViewModel @Inject constructor(
         }
     }
     companion object {
-        private var cachedTrendingSongs: List<SongItem>? = null
+        private const val TRENDING_CACHE_TTL_MS = 10 * 60 * 1000L
+        private const val TRENDING_CACHE_FILE = "trending_carousel_cache.json"
+        internal var cachedTrendingSongs: List<SongItem>? = null
+        private var cachedTrendingArtists: List<ArtistItem>? = null
         private var cachedArtistImages: Map<String, String>? = null
+        private var cachedTrendingCountry: String? = null
+        private var cachedTrendingFetchedAtMs: Long = 0L
+
+        private fun saveTrendingDiskCache(context: Context, items: List<SongItem>) {
+            try {
+                val array = JSONArray()
+                items.take(30).forEach { item ->
+                    val obj = JSONObject()
+                    obj.put("id", item.id)
+                    obj.put("title", item.title)
+                    obj.put("thumbnail", item.thumbnail)
+                    obj.put("explicit", item.explicit)
+                    val artistsArray = JSONArray()
+                    item.artists.forEach { artist ->
+                        val aObj = JSONObject()
+                        aObj.put("name", artist.name)
+                        aObj.put("id", artist.id)
+                        artistsArray.put(aObj)
+                    }
+                    obj.put("artists", artistsArray)
+                    array.put(obj)
+                }
+                val file = File(context.cacheDir, TRENDING_CACHE_FILE)
+                file.writeText(array.toString())
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to save trending disk cache")
+            }
+        }
+
+        private fun loadTrendingDiskCache(context: Context): List<SongItem>? {
+            return try {
+                val file = File(context.cacheDir, TRENDING_CACHE_FILE)
+                if (!file.exists()) return null
+                val text = file.readText()
+                if (text.isBlank()) return null
+                val array = JSONArray(text)
+                val list = mutableListOf<SongItem>()
+                for (i in 0 until array.length()) {
+                    val obj = array.getJSONObject(i)
+                    val id = obj.getString("id")
+                    val title = obj.getString("title")
+                    val thumbnail = obj.optString("thumbnail", "")
+                    val explicit = obj.optBoolean("explicit", false)
+                    val artistsArray = obj.optJSONArray("artists")
+                    val artists = mutableListOf<Artist>()
+                    if (artistsArray != null) {
+                        for (j in 0 until artistsArray.length()) {
+                            val aObj = artistsArray.getJSONObject(j)
+                            artists.add(
+                                Artist(
+                                    name = aObj.getString("name"),
+                                    id = if (aObj.has("id") && !aObj.isNull("id")) aObj.getString("id") else null
+                                )
+                            )
+                        }
+                    }
+                    list.add(
+                        SongItem(
+                            id = id,
+                            title = title,
+                            artists = artists,
+                            thumbnail = thumbnail,
+                            explicit = explicit
+                        )
+                    )
+                }
+                if (list.isNotEmpty()) list else null
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to load trending disk cache")
+                null
+            }
+        }
     }
 }

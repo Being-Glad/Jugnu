@@ -31,6 +31,7 @@ import com.metrolist.music.constants.*
 import com.metrolist.music.di.ApplicationScope
 import com.metrolist.music.extensions.toEnum
 import com.metrolist.music.extensions.toInetSocketAddress
+import com.metrolist.music.utils.CountryDetector
 import com.metrolist.music.utils.CrashHandler
 import com.metrolist.music.utils.YTPlayerUtils
 import com.metrolist.music.utils.cipher.CipherDeobfuscator
@@ -105,6 +106,8 @@ class App :
         val settings = dataStore.data.first()
         val locale = Locale.getDefault()
         val languageTag = locale.language
+        val detectedCountry = CountryDetector.detectCountry(this)
+        val initialContentCountry = settings[ContentCountryKey]
 
         ArtistConjunctions.conjunctions = listOf(
             R.string.and,
@@ -112,12 +115,16 @@ class App :
             runCatching { getString(id) }.getOrNull()
         }
 
+        val initialIsGlobal = initialContentCountry == CountryDetector.GLOBAL_CODE
+        YouTube.isGlobalCharts = initialIsGlobal
         YouTube.locale =
             YouTubeLocale(
-                gl =
-                    settings[ContentCountryKey]?.takeIf { it != SYSTEM_DEFAULT }
-                        ?: locale.country.takeIf { it in CountryCodeToName }
-                        ?: "US",
+                gl = when {
+                    initialIsGlobal -> "US"
+                    initialContentCountry != null && initialContentCountry != SYSTEM_DEFAULT ->
+                        initialContentCountry.takeIf { it in CountryCodeToName } ?: detectedCountry
+                    else -> detectedCountry
+                },
                 hl =
                     settings[ContentLanguageKey]?.takeIf { it != SYSTEM_DEFAULT }
                         ?: locale.language.takeIf { it in LanguageCodeToName }
@@ -263,13 +270,18 @@ class App :
                             ?.let { Locale.forLanguageTag(it) }
                             ?: systemLocale
 
+                    val isGlobal = contentCountry == CountryDetector.GLOBAL_CODE
+                    val activeDetectedCountry = CountryDetector.detectCountry(this@App)
+                    val glCode = when {
+                        isGlobal -> "US"
+                        contentCountry != null && contentCountry != SYSTEM_DEFAULT ->
+                            contentCountry.takeIf { it in CountryCodeToName } ?: activeDetectedCountry
+                        else -> activeDetectedCountry
+                    }
+                    YouTube.isGlobalCharts = isGlobal
                     YouTube.locale =
                         YouTubeLocale(
-                            gl =
-                                contentCountry?.takeIf { it != SYSTEM_DEFAULT }
-                                    ?: effectiveAppLocale.country.takeIf { it in CountryCodeToName }
-                                    ?: systemLocale.country.takeIf { it in CountryCodeToName }
-                                    ?: "US",
+                            gl = glCode,
                             hl =
                                 contentLanguage?.takeIf { it != SYSTEM_DEFAULT }
                                     ?: effectiveAppLocale.toLanguageTag().takeIf { it in LanguageCodeToName }
@@ -285,16 +297,29 @@ class App :
 
     override fun newImageLoader(context: PlatformContext): ImageLoader {
         val cacheSize = cachedCoilCacheSize ?: 512
+        val coilOkHttpClient = okhttp3.OkHttpClient.Builder()
+            .dns(com.metrolist.innertube.PreferIPv4Dns)
+            .connectionPool(okhttp3.ConnectionPool(16, 5, java.util.concurrent.TimeUnit.MINUTES))
+            .protocols(listOf(okhttp3.Protocol.HTTP_2, okhttp3.Protocol.HTTP_1_1))
+            .connectTimeout(8, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .proxy(YouTube.proxy)
+            .build()
         return ImageLoader
             .Builder(this)
             .apply {
-                crossfade(true)
+                crossfade(150)
+                precision(coil3.size.Precision.INEXACT)
                 allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
-                // Memory cache for fast image loading (prevents network requests on recomposition)
+                components {
+                    add(coil3.network.okhttp.OkHttpNetworkFetcherFactory(callFactory = { coilOkHttpClient }))
+                }
+                // Memory cache for fast image loading (prevents network requests & re-decoding on scroll)
                 memoryCache {
                     MemoryCache
                         .Builder()
-                        .maxSizePercent(context, 0.15)
+                        .maxSizePercent(context, 0.25)
                         .build()
                 }
                 if (cacheSize == 0) {

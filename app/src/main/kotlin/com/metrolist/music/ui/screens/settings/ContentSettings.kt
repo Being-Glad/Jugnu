@@ -58,6 +58,7 @@ import com.metrolist.music.constants.AppLanguageKey
 import com.metrolist.music.constants.ContentCountryKey
 import com.metrolist.music.constants.ContentLanguageKey
 import com.metrolist.music.constants.CountryCodeToName
+import com.metrolist.music.utils.CountryDetector
 import com.metrolist.music.constants.EnableBetterLyricsKey
 import com.metrolist.music.constants.EnableKugouKey
 import com.metrolist.music.constants.EnableLrcLibKey
@@ -109,7 +110,7 @@ fun ContentSettings(
     val (contentLanguage, onContentLanguageChange) = rememberPreference(key = ContentLanguageKey, defaultValue = "system")
     val (contentCountry, onContentCountryChange) = rememberPreference(key = ContentCountryKey, defaultValue = "system")
     val (hideExplicit, onHideExplicitChange) = rememberPreference(key = HideExplicitKey, defaultValue = false)
-    val (hideVideoSongs, onHideVideoSongsChange) = rememberPreference(key = HideVideoSongsKey, defaultValue = false)
+    val (hideVideoSongs, onHideVideoSongsChange) = rememberPreference(key = HideVideoSongsKey, defaultValue = true)
     val (hideYoutubeShorts, onHideYoutubeShortsChange) = rememberPreference(key = HideYoutubeShortsKey, defaultValue = false)
     val (showArtistDescription, onShowArtistDescriptionChange) = rememberPreference(key = ShowArtistDescriptionKey, defaultValue = true)
     val (showArtistSubscriberCount, onShowArtistSubscriberCountChange) = rememberPreference(key = ShowArtistSubscriberCountKey, defaultValue = true)
@@ -315,6 +316,8 @@ fun ContentSettings(
     }
 
     if (showContentCountryDialog) {
+        val detectedCountry = remember { CountryDetector.detectCountry(context) }
+        val detectedName = remember(detectedCountry) { CountryCodeToName[detectedCountry] ?: detectedCountry }
         EnumDialog(
             onDismiss = { showContentCountryDialog = false },
             onSelect = {
@@ -323,9 +326,13 @@ fun ContentSettings(
             },
             title = stringResource(R.string.content_country),
             current = contentCountry,
-            values = (listOf(SYSTEM_DEFAULT) + CountryCodeToName.keys.toList()),
+            values = listOf(SYSTEM_DEFAULT, CountryDetector.GLOBAL_CODE) + CountryCodeToName.keys.toList(),
             valueText = {
-                CountryCodeToName.getOrElse(it) { stringResource(R.string.system_default) }
+                when (it) {
+                    SYSTEM_DEFAULT -> stringResource(R.string.auto_detect_country, detectedName)
+                    CountryDetector.GLOBAL_CODE -> stringResource(R.string.global_worldwide)
+                    else -> CountryCodeToName.getOrElse(it) { it }
+                }
             }
         )
     }
@@ -686,7 +693,15 @@ fun ContentSettings(
                     title = { Text(stringResource(R.string.content_country)) },
                     description = {
                         Text(
-                            CountryCodeToName.getOrElse(contentCountry) { stringResource(R.string.system_default) }
+                            when (contentCountry) {
+                                CountryDetector.GLOBAL_CODE -> stringResource(R.string.global_worldwide)
+                                SYSTEM_DEFAULT -> {
+                                    val detected = CountryDetector.detectCountry(context)
+                                    val detectedName = CountryCodeToName[detected] ?: detected
+                                    stringResource(R.string.auto_detect_country, detectedName)
+                                }
+                                else -> CountryCodeToName.getOrElse(contentCountry) { stringResource(R.string.system_default) }
+                            }
                         )
                     },
                     onClick = { showContentCountryDialog = true }

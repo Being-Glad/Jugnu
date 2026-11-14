@@ -28,10 +28,14 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -163,7 +167,9 @@ import com.metrolist.music.constants.PlayerButtonsStyle
 import com.metrolist.music.constants.PlayerButtonsStyleKey
 import com.metrolist.music.constants.PlayerHorizontalPadding
 import com.metrolist.music.constants.QueuePeekHeight
+import com.metrolist.music.constants.LyricsPreferRomanizedKey
 import com.metrolist.music.constants.SleepTimerDefaultKey
+import com.metrolist.music.lyrics.LyricsUtils
 import com.metrolist.music.constants.SleepTimerFadeOutKey
 import com.metrolist.music.constants.SleepTimerStopAfterCurrentSongKey
 import com.metrolist.music.constants.SliderStyle
@@ -209,11 +215,6 @@ import kotlinx.coroutines.withContext
 import kotlin.math.max
 import kotlin.math.roundToInt
 import com.metrolist.music.ui.component.Icon as MIcon
-import com.metrolist.music.constants.SleepTimerDefaultKey
-import com.metrolist.music.utils.dataStore
-import androidx.datastore.preferences.core.edit
-import com.metrolist.music.constants.SleepTimerFadeOutKey
-import com.metrolist.music.constants.SleepTimerStopAfterCurrentSongKey
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1942,30 +1943,144 @@ fun BottomSheetPlayer(
                                     // so per-line tap-to-seek and free drag/fling work without
                                     // interference from InlineLyricsView's outer clickable wrapper.
                                     BackHandler { showInlineLyrics = false }
-                                    Box(modifier = Modifier.fillMaxSize()) {
+                                    val (preferRomanized, onPreferRomanizedChange) = rememberPreference(LyricsPreferRomanizedKey, defaultValue = false)
+                                    val currentLyrics by playerConnection.currentLyrics.collectAsStateWithLifecycle(initialValue = null)
+                                    val lyricsStr = remember(currentLyrics) { currentLyrics?.lyrics?.trim() }
+                                    val hasAlternateLanguage = remember(lyricsStr) {
+                                        lyricsStr != null && lyricsStr != LyricsEntity.LYRICS_NOT_FOUND && !LyricsUtils.isLatinOrEnglish(lyricsStr)
+                                    }
+
+                                    var buttonsVisible by remember { mutableStateOf(true) }
+                                    var lastInteractionTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
+                                    var pullDownOffset by remember { mutableFloatStateOf(0f) }
+
+                                    LaunchedEffect(lastInteractionTime) {
+                                        buttonsVisible = true
+                                        delay(3500)
+                                        buttonsVisible = false
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .pointerInput(Unit) {
+                                                awaitPointerEventScope {
+                                                    while (true) {
+                                                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                                                        if (event.changes.any { it.pressed }) {
+                                                            lastInteractionTime = System.currentTimeMillis()
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                    ) {
                                         Lyrics(
                                             sliderPositionProvider = { effectivePosition },
                                             modifier = Modifier.fillMaxSize(),
                                             showLyrics = true,
                                         )
-                                        IconButton(
-                                            onClick = { showInlineLyrics = false },
+
+                                        // Pull down from very top gesture zone to collapse back to player
+                                        Box(
                                             modifier = Modifier
-                                                .align(Alignment.TopEnd)
-                                                .statusBarsPadding()
-                                                .padding(top = 16.dp, end = 16.dp)
-                                                .size(40.dp)
-                                                .background(
-                                                    color = Color.Black.copy(alpha = 0.4f),
-                                                    shape = CircleShape
-                                                )
+                                                .fillMaxWidth()
+                                                .height(160.dp)
+                                                .align(Alignment.TopCenter)
+                                                .pointerInput(Unit) {
+                                                    detectVerticalDragGestures(
+                                                        onDragStart = { pullDownOffset = 0f },
+                                                        onDragEnd = {
+                                                            if (pullDownOffset > 50.dp.toPx()) {
+                                                                showInlineLyrics = false
+                                                            }
+                                                            pullDownOffset = 0f
+                                                        },
+                                                        onDragCancel = { pullDownOffset = 0f },
+                                                        onVerticalDrag = { change, dragAmount ->
+                                                            if (dragAmount > 0 || pullDownOffset > 0) {
+                                                                pullDownOffset += dragAmount
+                                                                if (pullDownOffset > 70.dp.toPx()) {
+                                                                    showInlineLyrics = false
+                                                                }
+                                                                change.consume()
+                                                            }
+                                                        },
+                                                    )
+                                                },
+                                        )
+
+                                        // Animated Top Controls (Close & Language toggle) — hides when idle
+                                        androidx.compose.animation.AnimatedVisibility(
+                                            visible = buttonsVisible,
+                                            enter = fadeIn(tween(250)) + scaleIn(tween(250), initialScale = 0.85f),
+                                            exit = fadeOut(tween(300)) + scaleOut(tween(300), targetScale = 0.85f),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .align(Alignment.TopCenter),
                                         ) {
-                                            Icon(
-                                                painter = painterResource(id = R.drawable.close),
-                                                contentDescription = "Close",
-                                                tint = Color.White,
-                                                modifier = Modifier.size(24.dp)
-                                            )
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .statusBarsPadding()
+                                                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically,
+                                            ) {
+                                                // Close button on Top-Left
+                                                IconButton(
+                                                    onClick = { showInlineLyrics = false },
+                                                    modifier = Modifier
+                                                        .size(40.dp)
+                                                        .background(
+                                                            color = Color.Black.copy(alpha = 0.4f),
+                                                            shape = CircleShape,
+                                                        ),
+                                                ) {
+                                                    Icon(
+                                                        painter = painterResource(id = R.drawable.close),
+                                                        contentDescription = stringResource(R.string.close),
+                                                        tint = Color.White,
+                                                        modifier = Modifier.size(24.dp),
+                                                    )
+                                                }
+
+                                                // Language Switch button on Top-Right
+                                                if (hasAlternateLanguage) {
+                                                    IconButton(
+                                                        onClick = {
+                                                            lastInteractionTime = System.currentTimeMillis()
+                                                            val nextState = !preferRomanized
+                                                            onPreferRomanizedChange(nextState)
+                                                        },
+                                                        modifier = Modifier
+                                                            .size(40.dp)
+                                                            .background(
+                                                                color = if (preferRomanized) MaterialTheme.colorScheme.primary else Color.Black.copy(alpha = 0.4f),
+                                                                shape = CircleShape,
+                                                            ),
+                                                    ) {
+                                                        if (preferRomanized) {
+                                                            Text(
+                                                                text = "EN",
+                                                                style = MaterialTheme.typography.labelMedium.copy(
+                                                                    fontWeight = FontWeight.Black,
+                                                                    fontSize = 13.sp,
+                                                                ),
+                                                                color = MaterialTheme.colorScheme.onPrimary,
+                                                            )
+                                                        } else {
+                                                            Icon(
+                                                                painter = painterResource(id = R.drawable.translate),
+                                                                contentDescription = "Switch language",
+                                                                tint = Color.White,
+                                                                modifier = Modifier.size(20.dp),
+                                                            )
+                                                        }
+                                                    }
+                                                } else {
+                                                    Spacer(modifier = Modifier.size(40.dp))
+                                                }
+                                            }
                                         }
                                     }
                                 } else {

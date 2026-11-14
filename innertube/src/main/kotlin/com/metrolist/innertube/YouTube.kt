@@ -20,6 +20,7 @@ import com.metrolist.innertube.models.Runs
 import com.metrolist.innertube.models.SearchSuggestions
 import com.metrolist.innertube.models.SectionListRenderer
 import com.metrolist.innertube.models.SongItem
+import com.metrolist.innertube.models.Tabs
 import com.metrolist.innertube.models.TasteArtist
 import com.metrolist.innertube.models.TasteProfile
 import com.metrolist.innertube.models.WatchEndpoint
@@ -127,6 +128,7 @@ object YouTube {
         set(value) {
             innerTube.proxyAuth = value
         }
+    var isGlobalCharts: Boolean = false
     var useLoginForBrowse: Boolean
         get() = innerTube.useLoginForBrowse
         set(value) {
@@ -1956,29 +1958,25 @@ object YouTube {
             )
         }
 
-    suspend fun getChartsPage(continuation: String? = null): Result<ChartsPage> =
+    suspend fun getChartsPage(continuation: String? = null, forceGlobal: Boolean = false): Result<ChartsPage> =
         runCatching {
-            val response =
+            suspend fun fetchCharts(params: String?): BrowseResponse =
                 innerTube
                     .browse(
                         client = WEB_REMIX,
                         browseId = "FEmusic_charts",
-                        params = "ggMGCgQIgAQ%3D",
+                        params = params,
                         continuation = continuation,
                     ).body<BrowseResponse>()
 
-            val sections = mutableListOf<ChartsPage.ChartSection>()
+            // Request regional charts for the active locale first, falling back to the default charts params.
+            val response = if (forceGlobal || isGlobalCharts) fetchCharts("ggMGCgQIgAQ%3D") else fetchCharts(null)
 
-            response.contents
-                ?.singleColumnBrowseResultsRenderer
-                ?.tabs
-                ?.firstOrNull()
-                ?.tabRenderer
-                ?.content
-                ?.sectionListRenderer
-                ?.contents
-                ?.forEach { content ->
+            fun extractSections(contents: List<SectionListRenderer.Content>?, fallbackTitle: String?): List<ChartsPage.ChartSection> {
+                val parsed = mutableListOf<ChartsPage.ChartSection>()
+                if (contents == null) return emptyList()
 
+                for (content in contents) {
                     content.musicCarouselShelfRenderer?.let { renderer ->
                         val title =
                             renderer.header
@@ -1987,28 +1985,40 @@ object YouTube {
                                 ?.runs
                                 ?.firstOrNull()
                                 ?.text
-                                ?: return@forEach
+                                ?: fallbackTitle
+                                ?: "Top"
 
                         val items =
                             renderer.contents
                                 .mapNotNull { item ->
                                     when {
-                                        item.musicResponsiveListItemRenderer != null -> {
+                                        item.musicResponsiveListItemRenderer != null ->
                                             convertToChartItem(item.musicResponsiveListItemRenderer)
-                                        }
-
-                                        item.musicTwoRowItemRenderer != null -> {
+                                        item.musicTwoRowItemRenderer != null ->
                                             convertMusicTwoRowItem(item.musicTwoRowItemRenderer)
-                                        }
-
-                                        else -> {
-                                            null
-                                        }
+                                        else -> null
                                     }
-                                }.filterNotNull()
+                                }
 
                         if (items.isNotEmpty()) {
-                            sections.add(
+                            parsed.add(
+                                ChartsPage.ChartSection(
+                                    title = title,
+                                    items = items,
+                                    chartType = determineChartType(title),
+                                ),
+                            )
+                        }
+                    }
+
+                    content.musicShelfRenderer?.let { shelf: MusicShelfRenderer ->
+                        val title = shelf.title?.runs?.firstOrNull()?.text ?: fallbackTitle ?: "Charts"
+                        val items = shelf.contents?.mapNotNull { item ->
+                            item.musicResponsiveListItemRenderer?.let { convertToChartItem(it) }
+                        } ?: emptyList()
+
+                        if (items.isNotEmpty()) {
+                            parsed.add(
                                 ChartsPage.ChartSection(
                                     title = title,
                                     items = items,
@@ -2026,18 +2036,19 @@ object YouTube {
                                 ?.runs
                                 ?.firstOrNull()
                                 ?.text
-                                ?: return@let
+                                ?: fallbackTitle
+                                ?: "New Releases"
 
                         val items =
                             renderer.items
                                 .mapNotNull { item ->
-                                    item.musicTwoRowItemRenderer?.let { renderer ->
-                                        convertMusicTwoRowItem(renderer)
+                                    item.musicTwoRowItemRenderer?.let { twoRow ->
+                                        convertMusicTwoRowItem(twoRow)
                                     }
-                                }.filterNotNull()
+                                }
 
                         if (items.isNotEmpty()) {
-                            sections.add(
+                            parsed.add(
                                 ChartsPage.ChartSection(
                                     title = title,
                                     items = items,
@@ -2047,9 +2058,62 @@ object YouTube {
                         }
                     }
                 }
+                return parsed
+            }
+
+            val allSections = mutableListOf<ChartsPage.ChartSection>()
+            val tabs = response.contents
+                ?.singleColumnBrowseResultsRenderer
+                ?.tabs
+                ?: emptyList()
+
+            tabs.forEach { tab ->
+                val tr = tab.tabRenderer
+                if (tr.content != null) {
+                    val extracted = extractSections(tr.content.sectionListRenderer?.contents, tr.title)
+                    allSections.addAll(extracted)
+                } else if (continuation == null && tr.endpoint?.browseEndpoint?.params != null) {
+                    runCatching {
+                        val tabResponse = fetchCharts(tr.endpoint.browseEndpoint.params)
+                        val innerTabs = tabResponse.contents?.singleColumnBrowseResultsRenderer?.tabs
+                        if (innerTabs != null) {
+                            innerTabs.forEach { innerTab ->
+                                val extracted = extractSections(innerTab.tabRenderer.content?.sectionListRenderer?.contents, innerTab.tabRenderer.title)
+                                allSections.addAll(extracted)
+                            }
+                        } else if (tabResponse.contents?.sectionListRenderer?.contents != null) {
+                            val extracted = extractSections(tabResponse.contents.sectionListRenderer.contents, tr.title)
+                            allSections.addAll(extracted)
+                        } else if (tabResponse.contents?.twoColumnBrowseResultsRenderer != null) {
+                            tabResponse.contents.twoColumnBrowseResultsRenderer.tabs?.filterNotNull()?.forEach { tcTab ->
+                                val extracted = extractSections(tcTab.tabRenderer.content?.sectionListRenderer?.contents, tcTab.tabRenderer.title)
+                                allSections.addAll(extracted)
+                            }
+                            tabResponse.contents.twoColumnBrowseResultsRenderer.secondaryContents?.sectionListRenderer?.contents?.let { secContents ->
+                                allSections.addAll(extractSections(secContents, tr.title))
+                            }
+                        }
+                    }.onFailure {
+                        timber.log.Timber.e(it, "ChartsTabError for tab '${tr.title}'")
+                    }
+                }
+            }
+
+            if (allSections.isEmpty() && continuation == null) {
+                runCatching {
+                    val fallbackResponse = fetchCharts("ggMGCgQIgAQ%3D")
+                    fallbackResponse.contents
+                        ?.singleColumnBrowseResultsRenderer
+                        ?.tabs
+                        ?.forEach { tab ->
+                            val extracted = extractSections(tab.tabRenderer.content?.sectionListRenderer?.contents, tab.tabRenderer.title)
+                            allSections.addAll(extracted)
+                        }
+                }
+            }
 
             ChartsPage(
-                sections = sections,
+                sections = allSections,
                 continuation =
                     response.continuationContents
                         ?.sectionListContinuation
@@ -2068,7 +2132,7 @@ object YouTube {
     private fun convertToChartItem(renderer: MusicResponsiveListItemRenderer): YTItem? {
         return try {
             when {
-                renderer.flexColumns.size >= 3 && renderer.videoId != null -> {
+                renderer.flexColumns.size >= 2 && renderer.videoId != null -> {
                     val firstColumn =
                         renderer.flexColumns
                             .getOrNull(0)
@@ -2117,6 +2181,44 @@ object YouTube {
                                 ?.text
                                 ?.toIntOrNull(),
                         chartChange = thirdColumn?.runs?.getOrNull(1)?.text,
+                    )
+                }
+
+                renderer.isArtist || (
+                    renderer.videoId == null &&
+                        renderer.navigationEndpoint?.browseEndpoint?.browseId?.startsWith("UC") == true
+                    ) -> {
+                    val artistId = renderer.navigationEndpoint?.browseEndpoint?.browseId ?: return null
+                    val title =
+                        renderer.flexColumns
+                            .firstOrNull()
+                            ?.musicResponsiveListItemFlexColumnRenderer
+                            ?.text
+                            ?.runs
+                            ?.firstOrNull()
+                            ?.text
+                            ?.takeIf { it.isNotBlank() } ?: return null
+                    val thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null
+                    ArtistItem(
+                        id = artistId,
+                        title = title,
+                        thumbnail = thumbnail,
+                        shuffleEndpoint =
+                            renderer.menu
+                                ?.menuRenderer
+                                ?.items
+                                ?.find { it.menuNavigationItemRenderer?.icon?.iconType == "MUSIC_SHUFFLE" }
+                                ?.menuNavigationItemRenderer
+                                ?.navigationEndpoint
+                                ?.watchPlaylistEndpoint,
+                        radioEndpoint =
+                            renderer.menu
+                                ?.menuRenderer
+                                ?.items
+                                ?.find { it.menuNavigationItemRenderer?.icon?.iconType == "MIX" }
+                                ?.menuNavigationItemRenderer
+                                ?.navigationEndpoint
+                                ?.watchPlaylistEndpoint,
                     )
                 }
 
@@ -2188,6 +2290,30 @@ object YouTube {
                             renderer.subtitleBadges?.any {
                                 it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
                             } == true,
+                    )
+                }
+
+                renderer.isArtist -> {
+                    ArtistItem(
+                        id = renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null,
+                        title = renderer.title.runs?.firstOrNull()?.text ?: return null,
+                        thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                        shuffleEndpoint =
+                            renderer.menu
+                                ?.menuRenderer
+                                ?.items
+                                ?.find { it.menuNavigationItemRenderer?.icon?.iconType == "MUSIC_SHUFFLE" }
+                                ?.menuNavigationItemRenderer
+                                ?.navigationEndpoint
+                                ?.watchPlaylistEndpoint,
+                        radioEndpoint =
+                            renderer.menu
+                                ?.menuRenderer
+                                ?.items
+                                ?.find { it.menuNavigationItemRenderer?.icon?.iconType == "MIX" }
+                                ?.menuNavigationItemRenderer
+                                ?.navigationEndpoint
+                                ?.watchPlaylistEndpoint,
                     )
                 }
 

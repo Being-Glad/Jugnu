@@ -14,6 +14,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.metrolist.innertube.YouTube
+import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.filterExplicit
 import com.metrolist.innertube.models.filterVideoSongs
 import com.metrolist.innertube.models.filterYoutubeShorts
@@ -60,11 +61,14 @@ constructor(
                         .searchSummary(query)
                         .onSuccess { page ->
                             val resolvedSummaries = page.summaries.map { summary ->
-                                summary.copy(items = YouTube.resolveArtistIds(summary.items))
+                                val resolved = YouTube.resolveArtistIds(summary.items)
+                                // Rank official studio tracks (ATV) ahead of music videos and fan uploads
+                                val prioritized = resolved.sortedByDescending { it is SongItem && !it.isVideoSong }
+                                summary.copy(items = prioritized)
                             }
                             val resolvedPage = page.copy(summaries = resolvedSummaries)
                             val hideExplicit = context.dataStore.get(HideExplicitKey, false)
-                            val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
+                            val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, true)
                             val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
                             summaryPage =
                                 resolvedPage.filterExplicit(hideExplicit)
@@ -104,8 +108,9 @@ constructor(
                             .search(query, filter)
                             .onSuccess { result ->
                                 val resolvedItems = YouTube.resolveArtistIds(result.items)
+                                    .sortedByDescending { it is SongItem && !it.isVideoSong }
                                 val hideExplicit = context.dataStore.get(HideExplicitKey, false)
-                                val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
+                                val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, true)
                                 val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
                                 viewStateMap[filter.value] =
                                     ItemsPage(

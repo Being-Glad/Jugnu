@@ -48,7 +48,7 @@ class SilenceDetectorAudioProcessor(
         channelCount = inputAudioFormat.channelCount
         encoding = inputAudioFormat.encoding
 
-        if (encoding != C.ENCODING_PCM_16BIT) {
+        if (encoding != C.ENCODING_PCM_16BIT && encoding != C.ENCODING_PCM_FLOAT) {
             throw AudioProcessor.UnhandledAudioFormatException(inputAudioFormat)
         }
 
@@ -76,23 +76,29 @@ class SilenceDetectorAudioProcessor(
     }
 
     private fun detectSilence(inputBuffer: ByteBuffer) {
-        // Ensure predictable endian access for getShort(index).
         inputBuffer.order(ByteOrder.LITTLE_ENDIAN)
 
-        val frameCount = inputBuffer.remaining() / 2 / channelCount
+        val isFloat = encoding == C.ENCODING_PCM_FLOAT
+        val bytesPerSample = if (isFloat) 4 else 2
+        val floatThreshold = silenceThreshold / 32768f
+        val frameCount = inputBuffer.remaining() / bytesPerSample / channelCount
         val basePosition = inputBuffer.position()
 
         repeat(frameCount) { frameIndex ->
-            var framePeak = 0
+            var isSilentFrame = true
             repeat(channelCount) { channelIndex ->
-                val sampleIndex = basePosition + (frameIndex * channelCount + channelIndex) * 2
-                val sampleValue = abs(inputBuffer.getShort(sampleIndex).toInt())
-                if (sampleValue > framePeak) {
-                    framePeak = sampleValue
+                val sampleIndex = basePosition + (frameIndex * channelCount + channelIndex) * bytesPerSample
+                val exceedsThreshold = if (isFloat) {
+                    abs(inputBuffer.getFloat(sampleIndex)) >= floatThreshold
+                } else {
+                    abs(inputBuffer.getShort(sampleIndex).toInt()) >= silenceThreshold
+                }
+                if (exceedsThreshold) {
+                    isSilentFrame = false
                 }
             }
 
-            if (framePeak < silenceThreshold) {
+            if (isSilentFrame) {
                 consecutiveSilentFrames++
                 val silentDurationUs = (consecutiveSilentFrames * 1_000_000L) / sampleRate
                 if (silentDurationUs >= minSilenceDurationUs) {

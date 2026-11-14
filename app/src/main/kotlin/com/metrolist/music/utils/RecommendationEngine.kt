@@ -12,16 +12,18 @@ import com.metrolist.innertube.YouTube.SearchFilter
 import com.metrolist.music.db.DatabaseDao
 import com.metrolist.music.constants.SongSortType
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.HttpTimeout
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
-import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -34,25 +36,18 @@ import javax.inject.Singleton
 @Singleton
 class RecommendationEngine @Inject constructor(
     private val localKotlinRecommender: LocalKotlinRecommender,
-    private val databaseDao: DatabaseDao
+    private val databaseDao: DatabaseDao,
+    private val httpClient: HttpClient,
+    private val jsonParser: Json,
 ) {
-    private val jsonParser = Json {
-        ignoreUnknownKeys = true
-        coerceInputValues = true
-    }
-
-    private val httpClient = HttpClient(CIO) {
-        install(ContentNegotiation) {
-            json(jsonParser)
-        }
-        install(HttpTimeout) {
-            requestTimeoutMillis = 8000
-            connectTimeoutMillis = 4000
-            socketTimeoutMillis = 8000
-        }
+    private val mbidCache = object : LinkedHashMap<String, String>(64, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean =
+            size > MBID_CACHE_MAX_SIZE
     }
 
     suspend fun getRecommendations(currentSongId: String, limit: Int = 10): List<SongItem> = withContext(Dispatchers.IO) {
+        if (limit <= 0) return@withContext emptyList()
+
         val seedSongId = if (currentSongId.isNotBlank()) {
             currentSongId
         } else {
@@ -70,11 +65,16 @@ class RecommendationEngine @Inject constructor(
             try {
                 Timber.tag("RecommendationEngine").d("Fetching recommendations from YouTube Next API for seed: $seedSongId")
                 val ytNextResult = YouTube.next(WatchEndpoint(videoId = seedSongId)).getOrNull()
-                val ytRecommendations = ytNextResult?.items?.filter { it.id != seedSongId } ?: emptyList()
+                val ytRecommendations = ytNextResult?.items
+                    .orEmpty()
+                    .filter { it.id != seedSongId }
+                    .distinctBy { it.id }
                 if (ytRecommendations.isNotEmpty()) {
                     Timber.tag("RecommendationEngine").d("Successfully fetched ${ytRecommendations.size} recommendations from YouTube")
                     return@withContext ytRecommendations.take(limit)
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Timber.tag("RecommendationEngine").w(e, "Failed to fetch recommendations from YouTube Next API")
             }
@@ -91,6 +91,8 @@ class RecommendationEngine @Inject constructor(
                             val similarTracks = fetchListenBrainzSimilar(mbid, limit)
                             if (similarTracks.isNotEmpty()) {
                                 val resolvedSongs = resolveTracksToYtItems(similarTracks)
+                                    .filter { it.id != seedSongId }
+                                    .distinctBy { it.id }
                                 if (resolvedSongs.isNotEmpty()) {
                                     return@withContext resolvedSongs.take(limit)
                                 }
@@ -98,6 +100,8 @@ class RecommendationEngine @Inject constructor(
                         }
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Timber.tag("RecommendationEngine").e(e, "Error fetching from ListenBrainz/MusicBrainz")
             }
@@ -105,6 +109,9 @@ class RecommendationEngine @Inject constructor(
 
         // Fallback to local kotlin recommender
         return@withContext getLocalFallbackSongItems(seedSongId, limit)
+            .filter { it.id != seedSongId }
+            .distinctBy { it.id }
+            .take(limit)
     }
 
     private suspend fun getLocalFallbackSongItems(currentSongId: String, limit: Int): List<SongItem> {
@@ -125,17 +132,32 @@ class RecommendationEngine @Inject constructor(
     }
 
     private suspend fun fetchMusicBrainzId(title: String, artist: String): String? {
+        val cacheKey = "${title.trim().lowercase()}\u0000${artist.trim().lowercase()}"
+        synchronized(mbidCache) {
+            mbidCache[cacheKey]?.let { return it }
+        }
+
         val url = "https://musicbrainz.org/ws/2/recording"
         return try {
+            val escapedTitle = escapeLuceneTerm(title)
+            val escapedArtist = escapeLuceneTerm(artist)
             val responseText = httpClient.get(url) {
                 header("User-Agent", "Jugnu/1.0.0")
-                parameter("query", "recording:\"$title\" AND artist:\"$artist\"")
+                parameter("query", "recording:\"$escapedTitle\" AND artist:\"$escapedArtist\"")
                 parameter("fmt", "json")
             }.bodyAsText()
 
             val jsonObject = jsonParser.parseToJsonElement(responseText).jsonObject
             val recordings = jsonObject["recordings"]?.jsonArray
-            recordings?.firstOrNull()?.jsonObject?.get("id")?.jsonPrimitive?.content
+            val mbid = recordings?.firstOrNull()?.jsonObject?.get("id")?.jsonPrimitive?.content
+            if (!mbid.isNullOrBlank()) {
+                synchronized(mbidCache) {
+                    mbidCache[cacheKey] = mbid
+                }
+            }
+            mbid
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Timber.tag("RecommendationEngine").w(e, "Failed to fetch MusicBrainz ID")
             null
@@ -164,26 +186,39 @@ class RecommendationEngine @Inject constructor(
                     trackName to artistName
                 } else null
             }.take(limit)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Timber.tag("RecommendationEngine").w(e, "Failed to fetch ListenBrainz recommendations")
             emptyList()
         }
     }
 
-    private suspend fun resolveTracksToYtItems(tracks: List<Pair<String, String>>): List<SongItem> {
-        val songItems = mutableListOf<SongItem>()
-        for ((title, artist) in tracks) {
-            try {
-                val searchQuery = "$title $artist"
-                val searchResult = YouTube.search(searchQuery, SearchFilter.FILTER_SONG).getOrNull()
-                val songItem = searchResult?.items?.firstOrNull { it is SongItem } as? SongItem
-                if (songItem != null) {
-                    songItems.add(songItem)
+    private suspend fun resolveTracksToYtItems(tracks: List<Pair<String, String>>): List<SongItem> = coroutineScope {
+        val semaphore = Semaphore(MAX_CONCURRENT_SEARCHES)
+        tracks.map { (title, artist) ->
+            async {
+                semaphore.withPermit {
+                    try {
+                        val searchQuery = "$title $artist"
+                        val searchResult = YouTube.search(searchQuery, SearchFilter.FILTER_SONG).getOrNull()
+                        searchResult?.items?.firstOrNull { it is SongItem } as? SongItem
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Timber.tag("RecommendationEngine").w(e, "Failed to resolve track to YouTube Music: $title by $artist")
+                        null
+                    }
                 }
-            } catch (e: Exception) {
-                Timber.tag("RecommendationEngine").w(e, "Failed to resolve track to YouTube Music: $title by $artist")
             }
-        }
-        return songItems
+        }.awaitAll().filterNotNull()
+    }
+
+    private fun escapeLuceneTerm(value: String): String =
+        value.replace("\\", "\\\\").replace("\"", "\\\"")
+
+    companion object {
+        private const val MBID_CACHE_MAX_SIZE = 256
+        private const val MAX_CONCURRENT_SEARCHES = 4
     }
 }

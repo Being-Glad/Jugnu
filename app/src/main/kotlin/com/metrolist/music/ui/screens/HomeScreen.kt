@@ -5,7 +5,10 @@
 
 package com.metrolist.music.ui.screens
 
+import android.os.Build
+import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -13,7 +16,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -710,7 +715,11 @@ fun HomeScreen(
     val (randomizeHomeOrder) = rememberPreference(RandomizeHomeOrderKey, true)
     val autoRadioQueue by rememberPreference(AutoRadioQueueKey, defaultValue = true)
 
-    LaunchedEffect(Unit) { viewModel.loadHomeData() }
+    val context = LocalContext.current
+    val view = LocalView.current
+    LaunchedEffect(Unit) {
+        viewModel.onHomeScreenOpened()
+    }
 
     val shouldShowWrappedCard by viewModel.showWrappedCard.collectAsStateWithLifecycle()
     val wrappedState by viewModel.wrappedManager.state.collectAsStateWithLifecycle()
@@ -1170,23 +1179,16 @@ fun HomeScreen(
             contentAlignment = Alignment.TopStart,
         ) {
             val trendingSongsVal by viewModel.trendingSongs.collectAsStateWithLifecycle()
+            val trendingArtistsVal by viewModel.trendingArtists.collectAsStateWithLifecycle()
             val trendingArtistImages by viewModel.trendingArtistImages.collectAsStateWithLifecycle()
-            val carouselSongs = remember(trendingSongsVal, pinnedSpeedDialItems, speedDialItems, isLoggedIn) {
-                val trending = trendingSongsVal.orEmpty()
-                val pinnedSongs = pinnedSpeedDialItems.mapNotNull { it.toYTItem() as? SongItem }
-                val userSongs = if (pinnedSongs.isNotEmpty()) pinnedSongs else speedDialItems.filterIsInstance<SongItem>()
-                if (isLoggedIn && userSongs.isNotEmpty()) {
-                    val mixed = mutableListOf<SongItem>()
-                    val maxLen = maxOf(userSongs.size, trending.size)
-                    for (i in 0 until maxLen) {
-                        if (i < userSongs.size) mixed.add(userSongs[i])
-                        if (i < trending.size && !mixed.any { it.id == trending[i].id }) {
-                            mixed.add(trending[i])
-                        }
-                    }
-                    mixed.distinctBy { it.id }
-                } else {
+            val carouselSongs = remember(trendingSongsVal, pinnedSpeedDialItems, speedDialItems) {
+                val trending = trendingSongsVal.orEmpty().distinctBy { it.id }
+                if (trending.isNotEmpty()) {
                     trending
+                } else {
+                    val pinnedSongs = pinnedSpeedDialItems.mapNotNull { it.toYTItem() as? SongItem }
+                    val userSongs = if (pinnedSongs.isNotEmpty()) pinnedSongs else speedDialItems.filterIsInstance<SongItem>()
+                    userSongs.distinctBy { it.id }
                 }
             }
             val songCount = carouselSongs.size.coerceAtLeast(1)
@@ -1202,40 +1204,45 @@ fun HomeScreen(
             val platformContext = LocalPlatformContext.current
 
             LaunchedEffect(carouselSongs) {
-                carouselSongs.forEachIndexed { index, song ->
-                    if (song.thumbnail.isNotEmpty()) {
-                        withContext(Dispatchers.IO) {
-                            try {
-                                val request = ImageRequest.Builder(platformContext)
-                                    .data(song.thumbnail)
-                                    .size(100, 100)
-                                    .allowHardware(false)
-                                    .build()
-                                val result = runCatching { platformContext.imageLoader.execute(request) }.getOrNull()
-                                if (result is SuccessResult) {
-                                    val bitmap = result.image.toBitmap()
-                                    val palette = Palette.from(bitmap)
-                                        .maximumColorCount(16)
-                                        .generate()
-                                    val swatch = palette.vibrantSwatch
-                                        ?: palette.dominantSwatch
-                                        ?: palette.darkVibrantSwatch
-                                        ?: palette.lightVibrantSwatch
-                                        ?: palette.mutedSwatch
-                                    if (swatch != null) {
-                                        val c = swatch.rgb
-                                        val extracted = Color(
-                                            red = android.graphics.Color.red(c) / 255f,
-                                            green = android.graphics.Color.green(c) / 255f,
-                                            blue = android.graphics.Color.blue(c) / 255f,
-                                            alpha = 1f
-                                        )
-                                        if (index < paletteColors.size) {
-                                            paletteColors[index] = extracted
+                kotlinx.coroutines.coroutineScope {
+                    val parentScope = this
+                    carouselSongs.forEachIndexed { index, song ->
+                        if (song.thumbnail.isNotEmpty()) {
+                            parentScope.launch(Dispatchers.IO) {
+                                try {
+                                    val request = ImageRequest.Builder(platformContext)
+                                        .data(song.thumbnail)
+                                        .size(64, 64)
+                                        .allowHardware(false)
+                                        .build()
+                                    val result = runCatching { platformContext.imageLoader.execute(request) }.getOrNull()
+                                    if (result is SuccessResult) {
+                                        val bitmap = result.image.toBitmap()
+                                        val palette = Palette.from(bitmap)
+                                            .maximumColorCount(8)
+                                            .generate()
+                                        val swatch = palette.vibrantSwatch
+                                            ?: palette.dominantSwatch
+                                            ?: palette.darkVibrantSwatch
+                                            ?: palette.lightVibrantSwatch
+                                            ?: palette.mutedSwatch
+                                        if (swatch != null) {
+                                            val c = swatch.rgb
+                                            val extracted = Color(
+                                                red = android.graphics.Color.red(c) / 255f,
+                                                green = android.graphics.Color.green(c) / 255f,
+                                                blue = android.graphics.Color.blue(c) / 255f,
+                                                alpha = 1f
+                                            )
+                                            withContext(Dispatchers.Main) {
+                                                if (index < paletteColors.size) {
+                                                    paletteColors[index] = extracted
+                                                }
+                                            }
                                         }
                                     }
-                                }
-                            } catch (_: Exception) {}
+                                } catch (_: Exception) {}
+                            }
                         }
                     }
                 }
@@ -1422,20 +1429,30 @@ fun HomeScreen(
                         }
 
                         item(key = "trending_artists_list") {
-                            // One entry per artist: take first named artist from each song
-                            // This guarantees every artist circle shows a DIFFERENT album thumbnail
-                            val artistsFromSongs = remember(trendingSongsVal, trendingArtistImages) {
-                                val seenArtistIds = mutableSetOf<String>()
-                                trendingSongsVal
-                                    ?.mapNotNull { song ->
-                                        val artist = song.artists.firstOrNull { it.id != null }
-                                        if (artist != null && seenArtistIds.add(artist.id!!)) {
-                                            val realPhoto = trendingArtistImages[artist.id!!] ?: song.thumbnail
-                                            Triple(artist.name, artist.id!!, realPhoto)
-                                        } else null
+                            val artistsFromSongs = remember(trendingArtistsVal, trendingSongsVal, trendingArtistImages) {
+                                val chartArtists = trendingArtistsVal
+                                    ?.mapNotNull { artist ->
+                                        val thumb = artist.thumbnail?.takeIf { it.isNotBlank() }
+                                            ?: trendingArtistImages[artist.id]
+                                            ?: return@mapNotNull null
+                                        Triple(artist.title, artist.id, thumb)
                                     }
-                                    ?.take(8)
-                                    ?: emptyList()
+                                    .orEmpty()
+                                if (chartArtists.isNotEmpty()) {
+                                    chartArtists.take(12)
+                                } else {
+                                    val seenArtistIds = mutableSetOf<String>()
+                                    trendingSongsVal
+                                        ?.mapNotNull { song ->
+                                            val artist = song.artists.firstOrNull { it.id != null }
+                                            if (artist != null && seenArtistIds.add(artist.id!!)) {
+                                                val realPhoto = trendingArtistImages[artist.id!!] ?: song.thumbnail
+                                                Triple(artist.name, artist.id!!, realPhoto)
+                                            } else null
+                                        }
+                                        ?.take(12)
+                                        ?: emptyList()
+                                }
                             }
 
                             if (artistsFromSongs.isNotEmpty()) {
@@ -3024,64 +3041,32 @@ private fun TrendingCarousel(
             }
     }
 
-    // Cache of extracted palette colors per song (index -> Color)
-    val paletteColors = remember(songs) { mutableStateListOf<Color?>(*arrayOfNulls(songs.size)) }
-    val context = LocalPlatformContext.current
+    val currentRealPage = (pagerState.currentPage % realCount + realCount) % realCount
+    val isDragged by pagerState.interactionSource.collectIsDraggedAsState()
+    var userInteracted by remember { mutableStateOf(false) }
 
-    // Extract palette colors for each song thumbnail in the background
-    LaunchedEffect(songs) {
-        songs.forEachIndexed { index, song ->
-            if (song.thumbnail.isNotEmpty()) {
-                kotlinx.coroutines.withContext(Dispatchers.IO) {
-                    try {
-                        val request = ImageRequest.Builder(context)
-                            .data(song.thumbnail)
-                            .size(100, 100)
-                            .allowHardware(false)
-                            .build()
-                        val result = runCatching { context.imageLoader.execute(request) }.getOrNull()
-                        if (result is SuccessResult) {
-                            val bitmap = result.image.toBitmap()
-                            val palette = Palette.from(bitmap)
-                                .maximumColorCount(16)
-                                .generate()
-                            val swatch = palette.vibrantSwatch
-                                ?: palette.dominantSwatch
-                                ?: palette.darkVibrantSwatch
-                                ?: palette.lightVibrantSwatch
-                                ?: palette.mutedSwatch
-                            if (swatch != null) {
-                                val c = swatch.rgb
-                                val extracted = Color(
-                                    red = android.graphics.Color.red(c) / 255f,
-                                    green = android.graphics.Color.green(c) / 255f,
-                                    blue = android.graphics.Color.blue(c) / 255f,
-                                    alpha = 1f
-                                )
-                                paletteColors[index] = extracted
-                            }
-                        }
-                    } catch (_: Exception) {}
-                }
+    LaunchedEffect(isDragged, userInteracted) {
+        if (isDragged || userInteracted) {
+            delay(4000)
+            if (!isDragged) {
+                userInteracted = false
             }
         }
     }
 
-    // Interpolated background color: blend between current and next page based on drag offset
-    val currentRealPage = (pagerState.currentPage % realCount + realCount) % realCount
-    val currentColor = paletteColors.getOrNull(currentRealPage) ?: Color(0xFF141414)
-    val nextRealPage = (currentRealPage + 1) % realCount
-    val nextColor = paletteColors.getOrNull(nextRealPage) ?: Color(0xFF141414)
-    val pageOffset = pagerState.currentPageOffsetFraction
-    val rawBgColor = lerp(currentColor, nextColor, pageOffset.coerceIn(0f, 1f))
-    val bgColor by animateColorAsState(
-        targetValue = rawBgColor,
-        animationSpec = androidx.compose.animation.core.tween(400),
-        label = "trending_bg"
-    )
-
     Box(
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
+            .fillMaxWidth()
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        if (event.changes.any { it.pressed }) {
+                            userInteracted = true
+                        }
+                    }
+                }
+            }
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             HorizontalPager(
@@ -3098,7 +3083,12 @@ private fun TrendingCarousel(
                 val isLiked = librarySong?.song?.liked == true
                 val coroutineScope = rememberCoroutineScope()
 
-                val highResThumbnail = song.thumbnail.replace(Regex("w\\d+-h\\d+"), "w1200-h1200")
+                val lowResBlurThumbnail = remember(song.thumbnail) {
+                    song.thumbnail.replace(Regex("w\\d+-h\\d+"), "w300-h300")
+                }
+                val highResThumbnail = remember(song.thumbnail) {
+                    song.thumbnail.replace(Regex("w\\d+-h\\d+"), "w720-h720")
+                }
 
                 Box(
                     modifier = Modifier
@@ -3128,7 +3118,7 @@ private fun TrendingCarousel(
                             }
                         }
                 ) {
-                    // Right-shifted artwork composite with dense 60dp edge blur and wide 30%-38% alpha dissolve on all 4 sides
+                    // Right-shifted artwork composite with atmospheric backdrop blur and wide edge dissolve
                     Box(
                         modifier = Modifier
                             .fillMaxHeight()
@@ -3157,14 +3147,14 @@ private fun TrendingCarousel(
                                 }
                             }
                     ) {
-                        // Layer 1 — Dense 60dp atmospheric blur
+                        // Layer 1 — Lightweight 24dp atmospheric blur on downscaled thumbnail
                         AsyncImage(
-                            model = highResThumbnail,
+                            model = lowResBlurThumbnail,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .blur(radiusX = 60.dp, radiusY = 60.dp)
+                                .blur(radiusX = 24.dp, radiusY = 24.dp)
                         )
 
                         // Layer 2 — Sharp artwork centered safely within 35%-65%
@@ -3220,15 +3210,30 @@ private fun TrendingCarousel(
                             .padding(start = 20.dp, top = 20.dp, bottom = 20.dp, end = 8.dp),
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text(
-                            text = "TRENDING NOW",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.5.sp,
-                                fontSize = 10.sp
-                            ),
-                            color = Color(0xFFF35F43)
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { navController.navigate("charts_screen") }
+                                .padding(vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "TRENDING NOW",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.5.sp,
+                                    fontSize = 10.sp
+                                ),
+                                color = Color(0xFFF35F43)
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Icon(
+                                painter = painterResource(id = R.drawable.navigate_next),
+                                contentDescription = stringResource(R.string.charts),
+                                tint = Color(0xFFF35F43),
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = song.title,
@@ -3321,24 +3326,65 @@ private fun TrendingCarousel(
                 }
             }
 
-            // Page indicator dots
-            Row(
-                horizontalArrangement = Arrangement.Center,
+            // Page indicator dots & View All action
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 12.dp)
+                    .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 12.dp)
             ) {
-                repeat(realCount) { index ->
-                    val isSelected = currentRealPage == index
-                    Box(
+                // Centered page indicator dots
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.align(Alignment.Center)
+                ) {
+                    repeat(realCount) { index ->
+                        val isSelected = currentRealPage == index
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 3.dp)
+                                .size(width = if (isSelected) 18.dp else 6.dp, height = 6.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (isSelected) Color.White else Color.White.copy(alpha = 0.4f)
+                                )
+                        )
+                    }
+                }
+
+                // "View all" action on the right - only visible when scrolled or touched
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = userInteracted || isDragged,
+                    enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(250)) +
+                            androidx.compose.animation.scaleIn(initialScale = 0.85f),
+                    exit = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(300)) +
+                            androidx.compose.animation.scaleOut(targetScale = 0.85f),
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .padding(horizontal = 3.dp)
-                            .size(width = if (isSelected) 18.dp else 6.dp, height = 6.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isSelected) Color.White else Color.White.copy(alpha = 0.4f)
-                            )
-                    )
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { navController.navigate("charts_screen") }
+                            .background(Color.White.copy(alpha = 0.12f))
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.view_all),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 11.sp
+                            ),
+                            color = Color.White.copy(alpha = 0.85f)
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Icon(
+                            painter = painterResource(id = R.drawable.navigate_next),
+                            contentDescription = stringResource(R.string.view_all),
+                            tint = Color.White.copy(alpha = 0.85f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
                 }
             }
         }

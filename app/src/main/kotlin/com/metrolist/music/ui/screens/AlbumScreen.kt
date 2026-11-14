@@ -120,8 +120,10 @@ fun AlbumScreen(
     val playlistId by viewModel.playlistId.collectAsStateWithLifecycle()
     val albumWithSongs by viewModel.albumWithSongs.collectAsStateWithLifecycle()
     val otherVersions by viewModel.otherVersions.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
-    val hideVideoSongs by rememberPreference(key = HideVideoSongsKey, defaultValue = false)
+    val hideVideoSongs by rememberPreference(key = HideVideoSongsKey, defaultValue = true)
 
     val filteredSongs =
         remember(albumWithSongs, hideExplicit, hideVideoSongs) {
@@ -501,6 +503,27 @@ fun AlbumScreen(
                                         ).animateItem(),
                             )
                         }
+                    }
+                }
+            }
+        } else if (error != null && !isLoading) {
+            item(key = "error") {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text = error ?: stringResource(R.string.error_unknown),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                    androidx.compose.material3.Button(onClick = { viewModel.retry() }) {
+                        Text(stringResource(R.string.retry))
                     }
                 }
             }
