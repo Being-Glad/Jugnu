@@ -166,11 +166,13 @@ android {
             keyAlias = debugKeyAlias
             keyPassword = debugKeyPassword
         }
-        create("release") {
-            storeFile = file("release.keystore")
-            storePassword = "jugnu_password"
-            keyAlias = "jugnu_key"
-            keyPassword = "jugnu_password"
+        if (file("release.keystore").exists()) {
+            create("release") {
+                storeFile = file("release.keystore")
+                storePassword = "jugnu_password"
+                keyAlias = "jugnu_key"
+                keyPassword = "jugnu_password"
+            }
         }
         getByName("debug") {
             keyAlias = "androiddebugkey"
@@ -190,7 +192,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            signingConfig = signingConfigs.getByName("release")
+            if (file("release.keystore").exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
         debug {
             if (applicationIdOverride == null) {
