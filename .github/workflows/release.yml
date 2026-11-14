@@ -78,10 +78,6 @@ jobs:
         include:
           - variant: foss
             variantName: Foss
-          - variant: gms
-            variantName: Gms
-          - variant: izzy
-            variantName: Izzy
 
     steps:
       - uses: actions/checkout@v6
