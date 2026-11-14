@@ -35,18 +35,23 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'web/package-lock.json'
 
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
       - name: Install Dependencies
         run: |
           cd web
           npm ci
 
       - name: Build Astro Project
+        env:
+          NODE_ENV: production
         run: |
           cd web
           npm run build
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3

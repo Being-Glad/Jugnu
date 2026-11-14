@@ -6,7 +6,7 @@
     <div class="footer-content">
       <div class="footer-brand">
         <a href="#" class="footer-logo">
-          <img src="/logo.png" alt="Jugnu Logo" />
+          <img src={`${import.meta.env.BASE_URL.replace(/\/?$/, '/')}logo.png`} alt="Jugnu Logo" />
           <span>Jugnu</span>
         </a>
         <p>High-performance Android YouTube Music client with low-latency playback, live synced lyrics, AI translation, AI recommendation engine, and parametric EQ.</p>
@@ -47,7 +47,7 @@
 .footer {
   padding: 4rem 0 2rem;
   border-top: 1px solid var(--border-color);
-  background: #04060a;
+  background: #000000;
 }
 
 .footer-content {
@@ -94,7 +94,7 @@
 }
 
 .credits-badge a {
-  color: var(--accent-cyan);
+  color: var(--accent-lime);
   font-weight: 600;
   text-decoration: underline;
 }
@@ -124,7 +124,7 @@
 }
 
 .footer-col a:hover {
-  color: var(--accent-cyan);
+  color: var(--accent-lime);
 }
 
 .footer-bottom {
